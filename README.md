@@ -1,5 +1,5 @@
-# crazyflie_hw_interface
-Builds on top of crazyflie_clean to provide an easy to use interface for our lab setup and enables lower dimensional examples.
+# refinecbf_ros
+Builds a wrapper to interface with refineCBF in ROS1. Tested in simulation with `crazyflie_clean`, for quadcopters
 
 ## Dependencies
 This repository has been tested solely with ROS Noetic.
