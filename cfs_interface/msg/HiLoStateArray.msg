@@ -1,2 +1,0 @@
-StateArray lo
-StateArray hi
