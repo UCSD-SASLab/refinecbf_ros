@@ -10,9 +10,9 @@ from refinecbf_ros.config import Config
 
 class SafetyFilterNode:
     def __init__(self):
-        vf_topic = rospy.get_param("~topics/vf_update", "/vf_update")
+        vf_topic = rospy.get_param("~topics/vf_update")
         self.vf_sub = rospy.Subscriber(vf_topic, ValueFunctionMsg, self.callback_vf_update)
-        self.state_topic = rospy.get_param("~topics/state", "/state_array")
+        self.state_topic = rospy.get_param("~topics/state")
         self.state_sub = rospy.Subscriber(self.state_topic, StateArray, self.callback_state)
         
         config = Config(hj_setup=True)
@@ -24,13 +24,13 @@ class SafetyFilterNode:
         self.safety_filter_solver.umin = np.array(config.control_space["lo"])
         self.safety_filter_solver.umax = np.array(config.control_space["hi"])
 
-        nom_control_topic = rospy.get_param("~topics/nominal_control", "/control/nominal")
+        nom_control_topic = rospy.get_param("~topics/nominal_control")
         self.nominal_control_sub = rospy.Subscriber(nom_control_topic, ControlArray, self.callback_safety_filter)
         self.state = None
-        filtered_control_topic = rospy.get_param("~topics/filtered_control", "/control/filtered")
+        filtered_control_topic = rospy.get_param("~topics/filtered_control")
         self.pub_filtered_control = rospy.Publisher(filtered_control_topic, ControlArray, queue_size=1)
 
-        actuation_update_topic = rospy.get_param("~topics/actuation_update", "/env/actuation_update")
+        actuation_update_topic = rospy.get_param("~topics/actuation_update")
         self.actuation_update_sub = rospy.Subscriber(actuation_update_topic, HiLoStateArray, 
                                                      self.callback_actuation_update)
 

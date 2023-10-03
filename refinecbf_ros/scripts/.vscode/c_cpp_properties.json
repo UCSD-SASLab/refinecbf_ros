@@ -1,0 +1,33 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/ethan/catkin_ws/devel/include/**",
+        "/home/ethan/crazyflie_clean/ros/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/ethan/crazyflie_clean/ros/src/crazyflie_control_merger/include/**",
+        "/home/ethan/crazyflie_clean/ros/src/crazyflie_ros/crazyflie_cpp/include/**",
+        "/home/ethan/crazyflie_clean/ros/src/crazyflie_lqr/include/**",
+        "/home/ethan/crazyflie_clean/ros/src/crazyflie_simulator/include/**",
+        "/home/ethan/crazyflie_clean/ros/src/crazyflie_state_estimator/include/**",
+        "/home/ethan/crazyflie_clean/ros/src/crazyflie_takeoff/include/**",
+        "/home/ethan/crazyflie_clean/ros/src/crazyflie_utils/include/**",
+        "/home/ethan/catkin_ws/src/turtlebot3_simulations/turtlebot3_fake/include/**",
+        "/home/ethan/catkin_ws/src/turtlebot3_simulations/turtlebot3_gazebo/include/**",
+        "/home/ethan/catkin_ws/src/turtlebot3/turtlebot3_slam/include/**",
+        "/home/ethan/catkin_ws/src/erl_quadrotor_vicon/vicon_odom/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

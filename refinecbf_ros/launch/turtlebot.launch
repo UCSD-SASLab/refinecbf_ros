@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+
+<launch>
+  <!-- Topics -->
+  <arg name="robot_state_topic" default="/odom" />
+  <arg name="cbf_state_topic" default="/safety_filter/state" />
+
+  <arg name="disturbance_update_topic" default="/env/disturbance_update" />
+  <arg name="actuation_update_topic" default="/env/actuation_update" />
+  <arg name="obstacle_update_topic" default="/env/obstacle_update" />
+  <arg name="vf_update_topic" default="/safety_filter/vf_update" />
+
+  <arg name="cbf_safe_control_topic" default="/safety_filter/safe_control" />
+  <arg name="cbf_nominal_control_topic" default="/safety_filter/nominal_control" />
+
+  <arg name="nominal_control_topic" default="/control/nominal_control" />
+  <arg name="stabilizing_control_topic" default="/control/stabilize" />
+  <arg name="merged_control_topic" default="/control/merged" />
+  <arg name="prioritized_control_topic" default="/cmd_vel" />
+  <arg name="control_mode" default="MERGE" />
+
+  <!-- Global parameters arguments -->
+  <arg name="dynamics_type" default="dubins_car" />
+  <arg name="grid_type" default="fine" />
+  <!-- Parameters -->
+  <param name="init_vf_file" value="$(find refinecbf_ros)/data/init_vf_tb3.npy" />
+  <param name="obstacle_file" value="$(find refinecbf_ros)/data/obstacle_tb3.npy" />
+  <param name="dynamics_type" value="$(arg dynamics_type)" />
+  <param name="grid_type" value="$(arg grid_type)" />
+  
+  <arg name="config_file" default="tb_env.yaml" />
+  <arg name="control_config_file" default="tb_control.yaml"/>
+
+  <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg config_file)" />
+  <arg name="control_config_file_loc" value="$(find refinecbf_ros)/config/$(arg control_config_file)"/>
+
+  <rosparam ns="env" file="$(arg config_file_loc)" />
+  <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
+
+  <node name="hj_reachability"
+        pkg="refinecbf_ros"
+        type="hj_reachability_node.py"
+        output="screen"
+        ns="safety_filter">
+    <param name="topics/disturbance_update" value="$(arg disturbance_update_topic)" />
+    <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
+    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+    <param name="topics/vf_update" value="$(arg vf_update_topic)" />
+  </node>
+
+  <node name="turtlebot_nominal_control"
+        pkg="refinecbf_ros"
+        type="tb3_nominal_control.py"
+        output="screen"
+        ns="control">
+    <param name="topics/state" value="$(arg cbf_state_topic)" />
+    <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
+  </node>
+
+
+  <node name="refine_cbf"
+        pkg="refinecbf_ros"
+        type="refine_cbf_node.py"
+        output="screen"
+        ns="safety_filter">
+    <param name="topics/state" value="$(arg cbf_state_topic)" />
+    <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
+    <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
+    <param name="topics/vf_update" value="$(arg vf_update_topic)" />
+    <param name="topics/filtered_control" value="$(arg cbf_safe_control_topic)" />
+  </node>
+
+  <node name="tb3_interface"
+        pkg="refinecbf_ros"
+        type="tb3_interface.py"
+        output="screen">
+    <param name="topics/robot_state" value="$(arg robot_state_topic)" />
+    <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
+    <param name="topics/robot_safe_control" value="$(arg prioritized_control_topic)" />
+    <param name="topics/cbf_safe_control" value="$(arg cbf_safe_control_topic)" />
+  </node>
+
+  <include file="$(find turtlebot3_fake)/launch/turtlebot3_fake.launch">
+    <arg name="model" value="burger" />
+  </include>
+</launch>

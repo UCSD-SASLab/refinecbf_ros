@@ -1,6 +1,6 @@
 import hj_reachability as hj
 import jax.numpy as jnp
-from cbf_opt import ControlAffineDynamics
+from cbf_opt import ControlAffineDynamics, ControlAffineCBF
 from refine_cbfs import HJControlAffineDynamics
 import numpy as np
 import rospy
@@ -43,7 +43,9 @@ class Config:
         
     def setup_dynamics(self):
         if self.dynamics_class == "quad_near_hover":            
-            return QuadNearHoverPlanarDynamics(params={"dt": 0.1, "g": 9.81})    
+            return QuadNearHoverPlanarDynamics(params={"dt": 0.1, "g": 9.81}) 
+        elif self.dynamics_class == "dubins_car":
+            return DubinsCarDynamics(params={"dt": 0.1})
         else:
             raise ValueError("Invalid dynamics type: {}".format(self.dynamics_class))
 
@@ -72,4 +74,23 @@ class QuadNearHoverPlanarDynamics(ControlAffineDynamics):
     
     def disturbance_jacobian(self, state, time: float = 0.0):
         return jnp.expand_dims(jnp.zeros(4), axis=-1)
+    
+class DubinsCarDynamics(ControlAffineDynamics):
+    """
+    Dubins Car Dynamics for Turtlebot
+    """
+    STATES = ["x","y","theta"]
+    CONTROLS = ["w","v"]
+    def __init__(self, params, **kwargs):
+        super().__init__(params, kwargs)
 
+    def open_loop_dynamics(self,state,time: float = 0.0):
+        return jnp.array([0.0,0.0,0.0])
+    
+    def control_matrix(self, state, time: float = 0.0):
+        return jnp.array([[0.0,jnp.cos(state[2])],[0.0,jnp.sin(state[2])],[1.0,0.0]])
+    
+    def disturbance_jacobian(self, state, time: float = 0.0):
+        return jnp.array([[1.0,0.0],[0.0,1.0],[0.0,0.0]])
+
+    

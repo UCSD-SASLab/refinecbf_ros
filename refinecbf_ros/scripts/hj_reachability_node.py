@@ -7,7 +7,8 @@ import jax.numpy as jnp
 from threading import Lock
 from refinecbf_ros.msg import ControlArray, StateArray, ValueFunctionMsg, HiLoStateArray
 from refinecbf_ros.config import Config
-
+from cbf_opt import ControlAffineCBF
+from refine_cbfs.cbf import TabularControlAffineCBF
 
 from refine_cbfs import HJControlAffineDynamics
 
@@ -28,8 +29,12 @@ class HJReachabilityNode:
 
         self.vf_lock = Lock()
 
-        self.sdf = self.setup_safe_space(config=config)
-        self.sdf_values = hj.utils.multivmap(self.sdf, jnp.arange(self.grid.ndim))(self.grid.states)
+        self.center_cbf = np.array([1.5,1.5])
+        self.radius_cbf = .33
+        self.cbf_scalar = 1.0
+
+        self.sdf_values = self.setup_safe_space()
+        #self.sdf_values = hj.utils.multivmap(self.sdf, jnp.arange(self.grid.ndim))(self.grid.states)
         initial_vf_file = rospy.get_param("~init_vf_file", None)
         if initial_vf_file is None:
             self.vf = self.sdf_values
@@ -64,13 +69,18 @@ class HJReachabilityNode:
         # Rospy make sure that subscribers run in separate thread from update_vf
         self.update_vf()  # This keeps spinning
             
-    def setup_safe_space(self, config):  # TODO: This has to be recalled when an obstacle moves or disappears or appears
-        bouding_box = self.setup_bounding_box(config)
-        combined_array = lambda state: bouding_box(state)
-        for obstacle in config.obstacles:
-            obstacle_array = self.setup_obstacle(obstacle)
-            combined_array = lambda state: jnp.min(jnp.array([combined_array, obstacle_array(state)]))
-        return combined_array
+    def setup_safe_space(self):  # TODO: This has to be recalled when an obstacle moves or disappears or appears
+        #bouding_box = self.setup_bounding_box(config)
+        #combined_array = lambda state: bouding_box(state)
+        #for obstacle in config.obstacles:
+        #    obstacle_array = self.setup_obstacle(obstacle)
+        #    combined_array = lambda state: jnp.min(jnp.array([combined_array, obstacle_array(state)]))
+        #return combined_array
+        diffdrive_cbf = DiffDriveCBF(self.dynamics, {"center": self.center_cbf,"r": self.radius_cbf,"scalar": self.cbf_scalar})
+        diffdrive_tabular_cbf = TabularControlAffineCBF(self.dynamics, dict(), grid=self.grid)
+        diffdrive_tabular_cbf.tabularize_cbf(diffdrive_cbf)
+        return diffdrive_tabular_cbf.vf_table
+
 
 
     def setup_bounding_box(self, config):
@@ -116,7 +126,57 @@ class HJReachabilityNode:
                 self.vf_pub.publish(vf_msg)  # TODO: Fix, this operation is really slow, but camera images are not necessarily that much worse... (although ints)
             rospy.sleep(0.001)  # To make sure that subscribers can run
 
+class DiffDriveCBF(ControlAffineCBF):
+    """
+    Class representing the control barrier function for the differential drive robot.
 
+    Inherits from the ControlAffineCBF class.
+    """
+
+    def __init__(self, dynamics, params: dict = dict(), **kwargs) -> None:
+        """
+        Constructor method.
+
+        Args:
+            dynamics (DiffDriveDynamics): Dynamics of the differential drive robot.
+            params (dict, optional): Dictionary containing parameters. Defaults to an empty dictionary.
+            **kwargs: Variable number of keyword arguments.
+        """
+        self.center = params["center"]  # Center of the circle defined by 0-superlevel set of h(x)
+        self.r = params["r"]            # Radius of the circle defined by 0-superlevel set of h(x)
+        self.scalar = params["scalar"]  # Scalar multiplier of h(x)
+
+        super().__init__(dynamics, params, **kwargs)
+
+    def vf(self, state, time=0.0):
+        """
+        Value function (h(x)) method.
+
+        Args:
+            state (numpy.array): Array representing the state.
+            time (float, optional): Time value. Defaults to 0.0.
+
+        Returns:
+            jnp.array: JAX NumPy array representing the value function.
+        """
+        return self.scalar * (self.r ** 2 - (state[..., 0] - self.center[0]) ** 2 - (state[..., 1] - self.center[1]) ** 2)
+
+    def _grad_vf(self, state, time=0.0):
+        """
+        Gradient of the value function (del_h(x)) method.
+
+        Args:
+            state (numpy.array): Array representing the state.
+            time (float, optional): Time value. Defaults to 0.0.
+
+        Returns:
+            jnp.array: JAX NumPy array representing the gradient of the value function.
+        """
+        dvf_dx = np.zeros_like(state)
+        dvf_dx[..., 0] = -2 * (state[..., 0] - self.center[0])
+        dvf_dx[..., 1] = -2 * (state[..., 1] - self.center[1])
+        return self.scalar * dvf_dx
+    
 if __name__ == "__main__":
     rospy.init_node("hj_reachability_node")
     HJReachabilityNode()
