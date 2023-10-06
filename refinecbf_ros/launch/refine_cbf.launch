@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 
 <launch>
+  <arg name="platform" default="crazyflie" />
+
   <!-- Topics -->
   <arg name="robot_state_topic" default="/state" />
   <arg name="cbf_state_topic" default="/safety_filter/state" />
@@ -32,8 +34,6 @@
 
   <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg config_file)" />
 
-
-  <rosparam ns="env" file="$(arg config_file_loc)" />
 
   <node name="hj_reachability"
         pkg="refinecbf_ros"
@@ -81,9 +81,66 @@
     <param name="topics/cbf_nominal_control" value="$(arg cbf_nominal_control_topic)" />
   </node>
 
-  <include file="$(find crazyflie_examples)/launch/sw_hover.launch">
-    <arg name="state_topic" value="$(arg robot_state_topic)" />
-    <arg name="lqr_control_topic" value="$(arg stabilizing_control_topic)" />
-    <arg name="merged_control_topic" value="$(arg merged_control_topic)" />
-  </include>
+  <rosparam ns="env" file="$(arg config_file_loc)" />
+
+  <!-- Arguments for child launch files -->
+  <!-- Topics. -->
+  <arg name="hardware" default="false" />
+  <arg name="control_reference_topic" default="/control/ref" />
+  <arg name="takeoff_control_topic" default="/control/takeoff" />
+  <arg name="final_control_topic" default="/control/final" />
+  <arg name="in_flight_topic" default="/control/in_flight" />
+
+  <!-- Frames of reference. -->
+  <!-- Fixed frame gets written based on hardware on not hardware -->
+  <arg name="robot_frame" default="crazyflie" />
+
+  <!-- Takeoff hover point. -->
+  <arg name="takeoff_hover_x" default="0.0" />
+  <arg name="takeoff_hover_y" default="0.0" />
+  <arg name="takeoff_hover_z" default="1.0" />
+
+  <!-- Start point for the simulator. NOT SURE IF WE NEED THIS FOR HW EXPERIMENTS, DOESNT HURT TO HAVE THOUGH -->
+  <arg name="sim_init_x" default="0.0" />
+  <arg name="sim_init_y" default="0.0" />
+  <arg name="sim_init_z" default="0.0" />
+
+  <!-- Control parameters. -->
+  <arg name="K_file" default="$(find crazyflie_lqr)/references/K_sander.txt"/>
+  <arg name="u_ref_file" default="$(find crazyflie_lqr)/references/u_ref_hover.txt"/>
+
+  <!-- Time steps. -->
+  <arg name="simulator_dt" default="0.001" />
+  <arg name="estimator_dt" default="0.01" />
+
+  <!-- Dimensions. -->
+  <arg name="x_dim" default="7" />
+  <arg name="u_dim" default="4" />
+
+  <group if="$(eval arg('platform') == 'crazyflie')">
+    <include file="$(find refinecbf_ros)/launch/crazyflie.launch">
+      <arg name="hardware" value="$(arg hardware)" />
+      <arg name="reference_topic" value="$(arg control_reference_topic)" />
+      <arg name="state_topic" value="$(arg robot_state_topic)" />
+      <arg name="lqr_control_topic" value="$(arg stabilizing_control_topic)" />
+      <arg name="merged_control_topic" value="$(arg merged_control_topic)" />
+      <arg name="takeoff_control_topic" value="$(arg takeoff_control_topic)" />
+      <arg name="final_control_topic" value="$(arg final_control_topic)" />
+      <arg name="in_flight_topic" value="$(arg in_flight_topic)" />
+
+      <arg name="robot_frame" value="$(arg robot_frame)" />
+      <arg name="takeoff_hover_x" value="$(arg takeoff_hover_x)" />
+      <arg name="takeoff_hover_y" value="$(arg takeoff_hover_y)" />
+      <arg name="takeoff_hover_z" value="$(arg takeoff_hover_z)" />
+      <arg name="sim_init_x" value="$(arg sim_init_x)" />
+      <arg name="sim_init_y" value="$(arg sim_init_y)" />
+      <arg name="sim_init_z" value="$(arg sim_init_z)" />
+      <arg name="K_file" value="$(arg K_file)" />
+      <arg name="u_ref_file" value="$(arg u_ref_file)" />
+      <arg name="simulator_dt" value="$(arg simulator_dt)" />
+      <arg name="estimator_dt" value="$(arg estimator_dt)" />
+      <arg name="x_dim" value="$(arg x_dim)" />
+      <arg name="u_dim" value="$(arg u_dim)" />    
+    </include>
+  </group>
 </launch>
