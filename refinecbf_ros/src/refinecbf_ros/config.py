@@ -7,7 +7,7 @@ import rospy
 
 
 class Config:
-    def __init__(self, hj_setup=True):
+    def __init__(self, hj_setup=False):
         self.dynamics_class = rospy.get_param("~/env/dynamics_class")
         self.dynamics = self.setup_dynamics()
         self.control_space = rospy.get_param("~/env/control_space")  # These need to be box spaces
@@ -43,7 +43,9 @@ class Config:
         
     def setup_dynamics(self):
         if self.dynamics_class == "quad_near_hover":            
-            return QuadNearHoverPlanarDynamics(params={"dt": 0.1, "g": 9.81})    
+            return QuadNearHoverPlanarDynamics(params={"dt": 0.1, "g": 9.81})
+        elif self.dynamics_class == "dubins_car":
+            return DubinsCarDynamics(params={"dt": 0.1})
         else:
             raise ValueError("Invalid dynamics type: {}".format(self.dynamics_class))
 
@@ -54,6 +56,7 @@ class Config:
         p_dims = self.state_domain["periodic_dims"]
         return hj.Grid.from_lattice_parameters_and_boundary_conditions(bounding_box, grid_resolution,
                                                                        periodic_dims=p_dims)
+
 
 class QuadNearHoverPlanarDynamics(ControlAffineDynamics):
     """
@@ -72,4 +75,21 @@ class QuadNearHoverPlanarDynamics(ControlAffineDynamics):
     
     def disturbance_jacobian(self, state, time: float = 0.0):
         return jnp.expand_dims(jnp.zeros(4), axis=-1)
+    
+
+class DubinsCarDynamics(ControlAffineDynamics):
+    """
+    Dubins Car Dynamics for the Turtlebot
+    """
+    STATES = ["x", "y", "theta"]
+    CONTROLS = ["omega", "v"]
+
+    def open_loop_dynamics(self, state, time: float = 0):
+        return jnp.array([0.0, 0.0, 0.0])
+    
+    def control_matrix(self, state, time: float = 0.0):
+        return jnp.array([[0.0, jnp.cos(state[2])], [0.0, jnp.sin(state[2])], [1.0, 0.0]])
+    
+    def disturbance_jacobian(self, state, time: float = 0.0):
+        return jnp.array([[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]])
 

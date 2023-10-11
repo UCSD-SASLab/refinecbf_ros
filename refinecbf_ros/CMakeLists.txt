@@ -169,6 +169,10 @@ catkin_install_python(PROGRAMS
   scripts/set_reference.py
   scripts/hj_reachability_node.py
   scripts/refine_cbf_node.py
+  scripts/turtlebot3/tb_nominal_controller.py
+  scripts/turtlebot3/tb_hw_interface.py
+  scripts/crazyflie/cf_nominal_controller.py
+  scripts/crazyflie/cf_hw_interface.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

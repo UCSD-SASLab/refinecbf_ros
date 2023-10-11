@@ -1,0 +1,14 @@
+nominal:
+  goal:
+    coordinates:
+      - 10.0
+      - 10.0
+      - 0.0
+    padding:
+      - 0.5
+      - 0.5
+      - 0.5
+    max_time: 30.0
+    time_intervals: 101
+    solver_accuracy: "low"
+  frequency: 20.0
