@@ -14,8 +14,11 @@
 
   <arg name="cbf_safe_control_topic" default="/safety_filter/safe_control" />
   <arg name="cbf_nominal_control_topic" default="/safety_filter/nominal_control" />
+  
+  <!-- Can be changed to accept commands from somewhere in cf stack -->
+  <arg name="robot_external_control_topic" default="/none" />
+  <arg name="cbf_external_control_topic" default="/safety_filter/external_control" />
 
-  <arg name="nominal_control_topic" default="/control/nominal_control" />
   <arg name="stabilizing_control_topic" default="/control/stabilize" />
   <arg name="merged_control_topic" default="/control/merged" />
   <arg name="prioritized_control_topic" default="/control/prioritized" />
@@ -69,16 +72,26 @@
     <param name="mode" value="$(arg control_mode)" />
   </node>
 
-  <node name="cf_interface"
+  <node name="cf_nominal_control"
         pkg="refinecbf_ros"
-        type="cf_interface.py"
+        type="cf_nominal_controller.py"
+        output="screen"
+        ns="safety_filter">
+    <param name="topics/state" value="$(arg cbf_state_topic)" />
+    <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
+    <param name="topics/external_control" value="$(arg cbf_external_control_topic)" />
+  </node> 
+
+  <node name="cf_hw_interface"
+        pkg="refinecbf_ros"
+        type="cf_hw_interface.py"
         output="screen">
     <param name="topics/robot_state" value="$(arg robot_state_topic)" />
     <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
     <param name="topics/robot_safe_control" value="$(arg prioritized_control_topic)" />
     <param name="topics/cbf_safe_control" value="$(arg cbf_safe_control_topic)" />
-    <param name="topics/robot_nominal_control" value="$(arg nominal_control_topic)" />
-    <param name="topics/cbf_nominal_control" value="$(arg cbf_nominal_control_topic)" />
+    <param name="topics/robot_external_control" value="$(arg robot_external_control_topic)" />
+    <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
   </node>
 
   <rosparam ns="env" file="$(arg config_file_loc)" />

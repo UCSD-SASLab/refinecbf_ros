@@ -17,7 +17,7 @@
 
   <!-- Could be either set to intercepting the teleop commands or remapping turtlebot packages -->
   <arg name="robot_external_control_topic" default="/none" />  
-  <arg name="cbf_external_control_topic" default="/control/external_control" />
+  <arg name="cbf_external_control_topic" default="/safety_filter/external_control" />
 
   <!-- Global parameters arguments -->
   <arg name="dynamics_type" default="dubins_car" />
@@ -52,7 +52,7 @@
         pkg="refinecbf_ros"
         type="tb_nominal_controller.py"
         output="screen"
-        ns="control">
+        ns="safety_filter">
     <param name="topics/state" value="$(arg cbf_state_topic)" />
     <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
     <param name="topics/external_control" value="$(arg cbf_external_control_topic)" />

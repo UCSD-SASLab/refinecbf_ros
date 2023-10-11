@@ -35,7 +35,7 @@ class CrazyflieNominalControl(NominalController):
 
 
 if __name__ == "__main__":
-    rospy.init_node("tb3_nominal_control_node")
+    rospy.init_node("cf_nominal_control_node")
     Controller = CrazyflieNominalControl()
 
     rate = rospy.Rate(rospy.get_param("/ctr/nominal/frequency"))
