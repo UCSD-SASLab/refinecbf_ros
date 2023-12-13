@@ -1,159 +1,37 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="platform" default="crazyflie" />
-
-  <!-- Topics -->
-  <arg name="robot_state_topic" default="/state" />
-  <arg name="cbf_state_topic" default="/safety_filter/state" />
-
-  <arg name="disturbance_update_topic" default="/env/disturbance_update" />
-  <arg name="actuation_update_topic" default="/env/actuation_update" />
-  <arg name="obstacle_update_topic" default="/env/obstacle_update" />
-  <arg name="vf_update_topic" default="/safety_filter/vf_update" />
-
-  <arg name="cbf_safe_control_topic" default="/safety_filter/safe_control" />
-  <arg name="cbf_nominal_control_topic" default="/safety_filter/nominal_control" />
-  
-  <!-- Can be changed to accept commands from somewhere in cf stack -->
-  <arg name="robot_external_control_topic" default="/none" />
-  <arg name="cbf_external_control_topic" default="/safety_filter/external_control" />
-
-  <arg name="stabilizing_control_topic" default="/control/stabilize" />
-  <arg name="merged_control_topic" default="/control/merged" />
-  <arg name="prioritized_control_topic" default="/control/prioritized" />
-  <arg name="control_mode" default="MERGE" />
-
-  <!-- Global parameters arguments -->
-  <arg name="dynamics_type" default="quad_near_hover" />
-  <arg name="grid_type" default="fine" />
-  <!-- Parameters -->
-  <param name="init_vf_file" value="$(find refinecbf_ros)/data/init_vf.npy" />
-  <param name="obstacle_file" value="$(find refinecbf_ros)/data/obstacle.npy" />
-  <param name="dynamics_type" value="$(arg dynamics_type)" />
-  <param name="grid_type" value="$(arg grid_type)" />
-  
-  <arg name="config_file" default="default_env.yaml" />
-
-  <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg config_file)" />
-
-
-  <node name="hj_reachability"
-        pkg="refinecbf_ros"
-        type="hj_reachability_node.py"
-        output="screen"
-        ns="safety_filter">
-    <param name="topics/disturbance_update" value="$(arg disturbance_update_topic)" />
-    <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
-    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
-    <param name="topics/vf_update" value="$(arg vf_update_topic)" />
-  </node>
-
-  <node name="refine_cbf"
+    <arg name="cbf_state_topic" />
+    <arg name="cbf_safe_control_topic" />
+    <arg name="cbf_nominal_control_topic" />
+    <arg name="vf_update_topic" />
+    <arg name="actuation_update_topic" />
+    <arg name="disturbance_update_topic" />
+    <arg name="obstacle_update_topic" />
+    <arg name="safety_filter_active" />
+    <node name="refine_cbf"
         pkg="refinecbf_ros"
         type="refine_cbf_node.py"
         output="screen"
         ns="safety_filter">
-    <param name="topics/state" value="$(arg cbf_state_topic)" />
-    <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
-    <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
-    <param name="topics/vf_update" value="$(arg vf_update_topic)" />
-    <param name="topics/filtered_control" value="$(arg cbf_safe_control_topic)" />
-  </node>
+        <param name="topics/state" value="$(arg cbf_state_topic)" />
+        <param name="topics/filtered_control" value="$(arg cbf_safe_control_topic)" />
+        <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
+        <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
+        <param name="topics/vf_update" value="$(arg vf_update_topic)" />
+        <param name="safety_filter_active" value="$(arg safety_filter_active)" />
+    </node>
+    <group if="$(eval arg('safety_filter_active') == 1)">
+        <node name="hj_reachability"
+            pkg="refinecbf_ros"
+            type="hj_reachability_node.py"
+            output="screen"
+            ns="safety_filter">
+            <param name="topics/disturbance_update" value="$(arg disturbance_update_topic)" />
+            <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
+            <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+            <param name="topics/vf_update" value="$(arg vf_update_topic)" />
+        </node>
+    </group>
 
-  <node name="regular_control_merger"
-        pkg="crazyflie_control_merger"
-        type="regular_control_merger_node"
-        output="screen"
-        ns="control">
-    <param name="topics/control" value="$(arg stabilizing_control_topic)" />  
-    <param name="topics/prioritized_control" value="$(arg prioritized_control_topic)" />
-    <param name="topics/merged" value="$(arg merged_control_topic)" />
-    <param name="mode" value="$(arg control_mode)" />
-  </node>
-
-  <node name="cf_nominal_control"
-        pkg="refinecbf_ros"
-        type="cf_nominal_controller.py"
-        output="screen"
-        ns="safety_filter">
-    <param name="topics/state" value="$(arg cbf_state_topic)" />
-    <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
-    <param name="topics/external_control" value="$(arg cbf_external_control_topic)" />
-  </node> 
-
-  <node name="cf_hw_interface"
-        pkg="refinecbf_ros"
-        type="cf_hw_interface.py"
-        output="screen">
-    <param name="topics/robot_state" value="$(arg robot_state_topic)" />
-    <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
-    <param name="topics/robot_safe_control" value="$(arg prioritized_control_topic)" />
-    <param name="topics/cbf_safe_control" value="$(arg cbf_safe_control_topic)" />
-    <param name="topics/robot_external_control" value="$(arg robot_external_control_topic)" />
-    <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
-  </node>
-
-  <rosparam ns="env" file="$(arg config_file_loc)" />
-
-  <!-- Arguments for child launch files -->
-  <!-- Topics. -->
-  <arg name="hardware" default="false" />
-  <arg name="control_reference_topic" default="/control/ref" />
-  <arg name="takeoff_control_topic" default="/control/takeoff" />
-  <arg name="final_control_topic" default="/control/final" />
-  <arg name="in_flight_topic" default="/control/in_flight" />
-
-  <!-- Frames of reference. -->
-  <!-- Fixed frame gets written based on hardware on not hardware -->
-  <arg name="robot_frame" default="crazyflie" />
-
-  <!-- Takeoff hover point. -->
-  <arg name="takeoff_hover_x" default="0.0" />
-  <arg name="takeoff_hover_y" default="0.0" />
-  <arg name="takeoff_hover_z" default="1.0" />
-
-  <!-- Start point for the simulator. NOT SURE IF WE NEED THIS FOR HW EXPERIMENTS, DOESNT HURT TO HAVE THOUGH -->
-  <arg name="sim_init_x" default="0.0" />
-  <arg name="sim_init_y" default="0.0" />
-  <arg name="sim_init_z" default="0.0" />
-
-  <!-- Control parameters. -->
-  <arg name="K_file" default="$(find crazyflie_lqr)/references/K_sander.txt"/>
-  <arg name="u_ref_file" default="$(find crazyflie_lqr)/references/u_ref_hover.txt"/>
-
-  <!-- Time steps. -->
-  <arg name="simulator_dt" default="0.001" />
-  <arg name="estimator_dt" default="0.01" />
-
-  <!-- Dimensions. -->
-  <arg name="x_dim" default="7" />
-  <arg name="u_dim" default="4" />
-
-  <group if="$(eval arg('platform') == 'crazyflie')">
-    <include file="$(find refinecbf_ros)/launch/crazyflie.launch">
-      <arg name="hardware" value="$(arg hardware)" />
-      <arg name="reference_topic" value="$(arg control_reference_topic)" />
-      <arg name="state_topic" value="$(arg robot_state_topic)" />
-      <arg name="lqr_control_topic" value="$(arg stabilizing_control_topic)" />
-      <arg name="merged_control_topic" value="$(arg merged_control_topic)" />
-      <arg name="takeoff_control_topic" value="$(arg takeoff_control_topic)" />
-      <arg name="final_control_topic" value="$(arg final_control_topic)" />
-      <arg name="in_flight_topic" value="$(arg in_flight_topic)" />
-
-      <arg name="robot_frame" value="$(arg robot_frame)" />
-      <arg name="takeoff_hover_x" value="$(arg takeoff_hover_x)" />
-      <arg name="takeoff_hover_y" value="$(arg takeoff_hover_y)" />
-      <arg name="takeoff_hover_z" value="$(arg takeoff_hover_z)" />
-      <arg name="sim_init_x" value="$(arg sim_init_x)" />
-      <arg name="sim_init_y" value="$(arg sim_init_y)" />
-      <arg name="sim_init_z" value="$(arg sim_init_z)" />
-      <arg name="K_file" value="$(arg K_file)" />
-      <arg name="u_ref_file" value="$(arg u_ref_file)" />
-      <arg name="simulator_dt" value="$(arg simulator_dt)" />
-      <arg name="estimator_dt" value="$(arg estimator_dt)" />
-      <arg name="x_dim" value="$(arg x_dim)" />
-      <arg name="u_dim" value="$(arg u_dim)" />    
-    </include>
-  </group>
 </launch>

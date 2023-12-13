@@ -1,23 +1,92 @@
 <?xml version="1.0"?>
 
 <launch>
-  <!-- Sim or hardware -->
-  <arg name="hardware" default="false" />
+  <!-- Topics -->
+  <arg name="safety_filter_active" default="true" />
+  <arg name="robot_state_topic" default="/state" />
+  <arg name="cbf_state_topic" default="/safety_filter/state" />
 
+  <arg name="disturbance_update_topic" default="/env/disturbance_update" />
+  <arg name="actuation_update_topic" default="/env/actuation_update" />
+  <arg name="obstacle_update_topic" default="/env/obstacle_update" />
+  <arg name="vf_update_topic" default="/safety_filter/vf_update" />
+
+  <arg name="robot_safe_control_topic" default="/robot/final_control" />
+  <arg name="cbf_safe_control_topic" default="/safety_filter/safe_control" />
+  <arg name="cbf_nominal_control_topic" default="/safety_filter/nominal_control" />
+  
+  <!-- Can be changed to accept commands from somewhere in cf stack -->
+  <arg name="robot_external_control_topic" default="/robot/external_control" />
+  <arg name="cbf_external_control_topic" default="/safety_filter/external_control" />
+  <arg name="publish_external_control_flag" default="/safety_filter/externally_controlled" />
+
+  <!-- Figure out what to do with all of these -->
+  <arg name="control_mode" default="MERGE" />
+
+  <!-- Global parameters arguments -->
+  <arg name="dynamics_type" default="quad_near_hover" />
+  <arg name="grid_type" default="fine" />
+  <!-- Parameters -->
+  <param name="init_vf_file" value="$(find refinecbf_ros)/data/init_vf.npy" />
+  <param name="obstacle_file" value="$(find refinecbf_ros)/data/obstacle.npy" />
+  <param name="dynamics_type" value="$(arg dynamics_type)" />
+  <param name="grid_type" value="$(arg grid_type)" />
+  
+  <arg name="config_file" default="crazyflie_env.yaml" />
+  <arg name="control_config_file" default="crazyflie_control.yaml" />
+
+  <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg config_file)" />
+  <arg name="control_config_file_loc"
+    value="$(find refinecbf_ros)/config/$(arg control_config_file)" />
+
+  <rosparam ns="env" file="$(arg config_file_loc)" command="load" />
+  <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
+  
+  <node name="cf_nominal_control"
+        pkg="refinecbf_ros"
+        type="cf_nominal_controller.py"
+        output="screen"
+        ns="safety_filter">
+    <param name="topics/state" value="$(arg cbf_state_topic)" />
+    <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
+    <param name="topics/external_control" value="$(arg cbf_external_control_topic)" />
+    <param name="topics/publish_external_control_flag" value="$(arg publish_external_control_flag)" />
+  </node> 
+
+  <node name="cf_hw_interface"
+        pkg="refinecbf_ros"
+        type="cf_hw_interface.py"
+        output="screen"
+        ns="hw_interface">
+    <param name="topics/robot_state" value="$(arg robot_state_topic)" />
+    <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
+    <param name="topics/robot_safe_control" value="$(arg robot_safe_control_topic)" />
+    <param name="topics/cbf_safe_control" value="$(arg cbf_safe_control_topic)" />
+    <param name="topics/robot_external_control" value="$(arg robot_external_control_topic)" />
+    <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
+  </node>
+
+  <include file="$(find refinecbf_ros)/launch/refine_cbf.launch">
+    <arg name="safety_filter_active" value="$(arg safety_filter_active)" />
+    <arg name="cbf_state_topic" value="$(arg cbf_state_topic)" />
+    <arg name="cbf_nominal_control_topic" value="$(arg cbf_nominal_control_topic)" />
+    <arg name="cbf_safe_control_topic" value="$(arg cbf_safe_control_topic)" />
+    <arg name="vf_update_topic" value="$(arg vf_update_topic)" />
+    <arg name="actuation_update_topic" value="$(arg actuation_update_topic)" />
+    <arg name="obstacle_update_topic" value="$(arg obstacle_update_topic)" />
+    <arg name="disturbance_update_topic" value="$(arg disturbance_update_topic)" />
+  </include>
+
+  <!-- Arguments for child launch files -->
   <!-- Topics. -->
-  <arg name="reference_topic" default="/ref" />
-  <arg name="state_topic" default="/state" />
-  <arg name="lqr_control_topic" default="/control/lqr" />
-  <arg name="merged_control_topic" default="/control/merged" />
+  <arg name="hardware" default="false" />
+  <arg name="control_reference_topic" default="/control/ref" />
   <arg name="takeoff_control_topic" default="/control/takeoff" />
-  <arg name="final_control_topic" default="/control/final" />
-  <arg name="in_flight_topic" default="/in_flight" />
+  <arg name="lqr_control_topic" default="/control/lqr" />
+  <arg name="in_flight_topic" default="/control/in_flight" />
 
   <!-- Frames of reference. -->
-  <!-- Fixed frame gets overridden if hardware = True -->
-  <arg name="fixed_frame" value="world" unless="$(arg hardware)"/>
-  <arg name="fixed_frame" value="odom" if="$(arg hardware)"/>
-
+  <!-- Fixed frame gets written based on hardware on not hardware -->
   <arg name="robot_frame" default="crazyflie" />
 
   <!-- Takeoff hover point. -->
@@ -42,6 +111,11 @@
   <arg name="x_dim" default="7" />
   <arg name="u_dim" default="4" />
 
+  <!-- Frames of reference. -->
+  <!-- Fixed frame gets overridden if hardware = True -->
+  <arg name="fixed_frame" value="world" unless="$(arg hardware)"/>
+  <arg name="fixed_frame" value="odom" if="$(arg hardware)"/>
+
   <!-- TF static publisher to create a base_link frame for the crazyflie. -->
   <node pkg="tf"
         type="static_transform_publisher"
@@ -51,6 +125,7 @@
 
   <!-- LQR controller. -->
   <node name="lqr_controller"
+        ns="/control"
         pkg="crazyflie_lqr"
         type="position_velocity_yaw_state_lift_lqr_node"
         output="screen">
@@ -61,19 +136,20 @@
     <param name="K_file" value="$(arg K_file)" />
     <param name="u_ref_file" value="$(arg u_ref_file)" />
 
-    <param name="topics/reference" value="$(arg reference_topic)" />
-    <param name="topics/state" value="$(arg state_topic)" />
+    <param name="topics/reference" value="$(arg control_reference_topic)" />
+    <param name="topics/state" value="$(arg robot_state_topic)" />
     <param name="topics/control" value="$(arg lqr_control_topic)" />
     <param name="topics/in_flight" value="$(arg in_flight_topic)" />
   </node>
 
   <!-- Takeoff server node. -->
   <node name="takeoff_server"
+        ns="/control"
         pkg="crazyflie_takeoff"
         type="takeoff_server_node"
         output="screen">
 
-    <param name="topics/reference" value="$(arg reference_topic)" />
+    <param name="topics/reference" value="$(arg control_reference_topic)" />
     <param name="topics/control" value="$(arg takeoff_control_topic)" />
     <param name="topics/in_flight" value="$(arg in_flight_topic)" />
 
@@ -90,8 +166,8 @@
         output="screen">
 
     <param name="topics/takeoff_control" value="$(arg takeoff_control_topic)" />
-    <param name="topics/commanded_control" value="$(arg merged_control_topic)" />
-    <param name="topics/final_control" value="$(arg final_control_topic)" />
+    <param name="topics/commanded_control" value="$(arg lqr_control_topic)" />
+    <param name="topics/final_control" value="$(arg robot_external_control_topic)" />
     <param name="topics/in_flight" value="$(arg in_flight_topic)" />
   </node>
 
@@ -135,16 +211,6 @@
         <arg name="enable_logging" value="True" />
       </include>
 
-      <!-- Interfaces with the lower level crazyflie commands -->
-      <node name="cmd_vel_converter" 
-        pkg="crazyflie_control_merger"
-        type="cmd_vel_converter_node"
-        output="screen">
-
-        <param name="topics/control" value="$(arg final_control_topic)" />
-        <param name="topics/cmd_vel" value="/$(arg robot_frame)/cmd_vel" />
-      </node>
-
       <!--
       <node name="joy" pkg="joy" type="joy_node" output="screen">
         <param name="dev" value="$(arg joy_dev)" />
@@ -173,7 +239,7 @@
       <param name="frames/fixed" value="$(arg fixed_frame)" />
       <param name="frames/robot" value="$(arg robot_frame)" />
 
-      <param name="topics/control" value="$(arg final_control_topic)" />
+      <param name="topics/control" value="$(arg robot_safe_control_topic)" />
     </node>
 
   </group>
@@ -191,7 +257,7 @@
     <param name="frames/fixed" value="$(arg fixed_frame)" />
     <param name="frames/robot" value="$(arg robot_frame)" />
 
-    <param name="topics/state" value="$(arg state_topic)" />
+    <param name="topics/state" value="$(arg robot_state_topic)" />
   </node>
 
 </launch>
