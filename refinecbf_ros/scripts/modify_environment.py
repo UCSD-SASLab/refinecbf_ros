@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import rospy
-from refinecbf_ros.msg import StateArray, HiLoStateArray, ValueFunctionMsg
+from refinecbf_ros.msg import Array, HiLoArray, ValueFunctionMsg
 from refinecbf_ros.srv import ModifyEnvironment
 
 class ModifyEnvironmentServer:
     def __init__(self):
         # Set up publishers
-        self.actuation_update_pub = rospy.Publisher("/actuation_update", HiLoStateArray, queue_size=1)
-        self.disturbance_update_pub = rospy.Publisher("/disturbance_update", HiLoStateArray, queue_size=1)
+        self.actuation_update_pub = rospy.Publisher("/actuation_update", HiLoArray, queue_size=1)
+        self.disturbance_update_pub = rospy.Publisher("/disturbance_update", HiLoArray, queue_size=1)
         self.obstacle_update_pub = rospy.Publisher("/obstacle_update", ValueFunctionMsg, queue_size=1)
 
         # Set up service

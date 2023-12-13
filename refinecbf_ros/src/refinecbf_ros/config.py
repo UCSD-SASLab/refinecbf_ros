@@ -18,10 +18,16 @@ class Config:
         if hj_setup:
             self.safe_set = rospy.get_param("~/env/safe_set")
             self.obstacles = rospy.get_param("~/env/obstacles")
-            control_space_hj = hj.sets.Box(lo=jnp.array(self.control_space["lo"]), 
-                                           hi=jnp.array(self.control_space["hi"]))
-            dist_space_hj = hj.sets.Box(lo=jnp.array(self.disturbance_space["lo"]), 
-                                        hi=jnp.array(self.disturbance_space["hi"]))
+            if self.control_space["n_dims"] == 0:
+                control_space_hj = hj.sets.Box(lo=jnp.array([]), hi=jnp.array([]))
+            else:
+                control_space_hj = hj.sets.Box(lo=jnp.array(self.control_space["lo"]), 
+                                               hi=jnp.array(self.control_space["hi"]))
+            if self.disturbance_space["n_dims"] == 0:
+                dist_space_hj = hj.sets.Box(lo=jnp.array([]), hi=jnp.array([]))
+            else:
+                dist_space_hj = hj.sets.Box(lo=jnp.array(self.disturbance_space["lo"]), 
+                                            hi=jnp.array(self.disturbance_space["hi"]))
             self.hj_dynamics = HJControlAffineDynamics(self.dynamics, control_space=control_space_hj, 
                                                        disturbance_space=dist_space_hj)
         
@@ -43,9 +49,9 @@ class Config:
         
     def setup_dynamics(self):
         if self.dynamics_class == "quad_near_hover":            
-            return QuadNearHoverPlanarDynamics(params={"dt": 0.1, "g": 9.81})
+            return QuadNearHoverPlanarDynamics(params={"g": 9.81}, dt=0.05, test=False)
         elif self.dynamics_class == "dubins_car":
-            return DubinsCarDynamics(params={"dt": 0.1})
+            return DubinsCarDynamics(dt=0.05, test=False)
         else:
             raise ValueError("Invalid dynamics type: {}".format(self.dynamics_class))
 
@@ -62,19 +68,12 @@ class QuadNearHoverPlanarDynamics(ControlAffineDynamics):
     """
     Simplified dynamics, and we need to convert controls from phi to tan(phi)"""
     STATES = ["y", "z", "v_y", "v_z"]
-    CONTROLS = ["tan(phi)", "T"]
-    def __init__(self, params, **kwargs):
-        self.g = params.get("g", 9.81)
-        super().__init__(params, kwargs)
-    
+    CONTROLS = ["tan(phi)", "T"]    
     def open_loop_dynamics(self, state, time: float = 0.0):
-        return jnp.array([state[2], state[3], 0.0, -self.g])
-    
+        return jnp.array([state[2], state[3], 0.0, -self.params['g']])
+
     def control_matrix(self, state, time: float = 0.0):
-        return jnp.array([[0.0, 0.0], [0.0, 0.0], [self.g, 0.0], [0.0, 1.0]])
-    
-    def disturbance_jacobian(self, state, time: float = 0.0):
-        return jnp.expand_dims(jnp.zeros(4), axis=-1)
+        return jnp.array([[0.0, 0.0], [0.0, 0.0], [-self.params['g'], 0.0], [0.0, 1.0]])
     
 
 class DubinsCarDynamics(ControlAffineDynamics):
@@ -83,13 +82,14 @@ class DubinsCarDynamics(ControlAffineDynamics):
     """
     STATES = ["x", "y", "theta"]
     CONTROLS = ["omega", "v"]
+    # DISTURBANCES = ["dx", "dy"]
 
     def open_loop_dynamics(self, state, time: float = 0):
         return jnp.array([0.0, 0.0, 0.0])
     
     def control_matrix(self, state, time: float = 0.0):
-        return jnp.array([[0.0, jnp.cos(state[2])], [0.0, jnp.sin(state[2])], [1.0, 0.0]])
+        return jnp.array([[jnp.cos(state[2]), 0.0], [jnp.sin(state[2]), 0.0], [0.0, 1.0]])
     
-    def disturbance_jacobian(self, state, time: float = 0.0):
-        return jnp.array([[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]])
+    # def disturbance_jacobian(self, state, time: float = 0.0):
+    #     return jnp.array([[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]])
 

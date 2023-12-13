@@ -1,51 +1,117 @@
 #!/usr/bin/env python3
 
 import rospy
-import numpy as np
-
-from refinecbf_ros.msg import StateArray, ControlArray
-
+from refinecbf_ros.msg import Array
 
 class BaseInterface:
     """
-    This class converts the state and control messages from the SafetyFilterNode to the correct type
-    for the crazyflies.
-    Each HW platform should have its own Interface node
+    BaseInterface is an abstract base class that converts the state and control messages 
+    from the SafetyFilterNode to the correct type for the crazyflies. Each hardware platform 
+    should have its own Interface node that subclasses this base class.
+
+    Attributes:
+    - state_msg_type: The ROS message type for the robot's state.
+    - control_out_msg_type: The ROS message type for the robot's safe control.
+    - external_control_msg_type: The ROS message type for the robot's external control.
+
+    Subscribers:
+    - ~topics/robot_state: Subscribes to the robot's state.
+    - ~topics/cbf_safe_control: Subscribes to the safe control messages.
+    - ~topics/robot_external_control: Subscribes to the external control messages.
+
+    Publishers:
+    - state_pub (~topics/cbf_state): Publishes the converted state messages.
+    - safe_control_pub (~topics/robot_safe_control): Publishes the converted safe control messages.
+    - external_control_pub (~topics/cbf_external_control): Publishes the converted external control messages.
     """
 
     state_msg_type = None
-    safe_control_msg_type = None
+    control_out_msg_type = None
     external_control_msg_type = None
 
     def __init__(self):
-        # Convert state messages to correct type
-        robot_state_topic = rospy.get_param("~topics/robot_state", "/state")
-        cbf_state_topic = rospy.get_param("~topics/cbf_state", "/state_array")
+        """
+        Initialize the BaseInterface.
+        """
+        # Set up state subscriber and publisher
+        robot_state_topic = rospy.get_param("~topics/robot_state")
+        cbf_state_topic = rospy.get_param("~topics/cbf_state")
+        rospy.Subscriber(robot_state_topic, self.state_msg_type, self.callback_state)
+        self.state_pub = rospy.Publisher(cbf_state_topic, Array, queue_size=1)
 
-        state_sub = rospy.Subscriber(robot_state_topic, self.state_msg_type, self.callback_state)
-        self.state_pub = rospy.Publisher(cbf_state_topic, StateArray, queue_size=1)
-
-        # Convert control messages to correct type
+        # Set up safe control subscriber and publisher
         robot_safe_control_topic = rospy.get_param("~topics/robot_safe_control")
-        robot_external_control_topic = rospy.get_param("~topics/robot_external_control")
-
         cbf_safe_control_topic = rospy.get_param("~topics/cbf_safe_control")
+        rospy.Subscriber(cbf_safe_control_topic, Array, self.callback_safe_control)
+        self.safe_control_pub = rospy.Publisher(robot_safe_control_topic, self.control_out_msg_type, queue_size=1)
+
+        # Set up external control subscriber and publisher
+        robot_external_control_topic = rospy.get_param("~topics/robot_external_control")
         cbf_external_control_topic = rospy.get_param("~topics/cbf_external_control")
-
-        safe_control_sub = rospy.Subscriber(cbf_safe_control_topic, ControlArray, self.callback_safe_control)
-        # PrioritizedControlStamped to give a "priority value" to the control (used in the merged_control node)
-        self.safe_control_pub = rospy.Publisher(robot_safe_control_topic, self.safe_control_msg_type, queue_size=1)
-
-        external_control_sub = rospy.Subscriber(
-            robot_external_control_topic, self.external_control_msg_type, self.callback_external_control
-        )
-        self.external_control_pub = rospy.Publisher(cbf_external_control_topic, ControlArray, queue_size=1)
+        rospy.Subscriber(robot_external_control_topic, self.external_control_msg_type, self.callback_external_control)
+        self.external_control_pub = rospy.Publisher(cbf_external_control_topic, Array, queue_size=1)
 
     def callback_state(self, state_msg):
+        """
+        Callback for the state subscriber. This method should be implemented in a subclass.
+
+        Args:
+            state_msg: The incoming state message.
+        """
         raise NotImplementedError("Must be subclassed")
 
-    def callback_safe_control(self, control_msg):
+    def callback_safe_control(self, control_in_msg):
+        """
+        Callback for the safe control subscriber. This method should be implemented in a subclass.
+        Should call self.override_safe_control()
+
+        Args:
+            control_msg: The incoming control message.
+        """
+        control_out_msg = self.process_safe_control(control_in_msg)
+        assert type(control_out_msg) == self.control_out_msg_type, "Override to process the safe control message"
+        if not self.override_safe_control():
+            self.safe_control_pub.publish(control_out_msg)
+
+    def callback_external_control(self, control_in_msg):
+        """
+        Callback for the external control subscriber. This method should be implemented in a subclass.
+        Typical usage:
+        - Process incoming control message to Array
+        - Call self.override_nominal_control(control_msg)
+        Args:
+            control_msg: The incoming control message.
+        """
+        if self.override_safe_control():
+            assert type(control_in_msg) == self.control_out_msg_type
+            self.safe_control_pub.publish(control_in_msg)
+        control_out_msg = self.process_external_control(control_in_msg)
+        assert type(control_out_msg) == Array, "Override to process the external control message"
+        if self.override_nominal_control():
+            self.external_control_pub.publish(control_out_msg) if self.override_nominal_control() else None
+
+    def process_external_control(self, control_in_msg):
+        raise NotImplementedError("Must be subclassed")
+    
+    def process_safe_control(self, control_in_msg):
         raise NotImplementedError("Must be subclassed")
 
-    def callback_external_control(self, control_msg):
-        raise NotImplementedError("Must be subclassed")
+    def override_safe_control(self):
+        """
+        Checks if the robot should override the safe control. Defaults to False.
+        Should be overriden if the robot has to be able to be taken over by user.
+
+        Returns:
+            True if the robot should override the safe control, False otherwise.
+        """
+        return False
+    
+    def override_nominal_control(self):
+        """
+        Checks if the robot should override the nominal control. Defaults to False.
+        Should be overriden if we would like interactive experiments. (e.g. geofencing)
+
+        Returns:
+            True if the robot should override the nominal control, False otherwise.
+        """
+        return False

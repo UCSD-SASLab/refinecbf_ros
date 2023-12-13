@@ -1,0 +1,46 @@
+dynamics_class: "quad_near_hover"
+safe_set:
+  lo: 
+    - -5.0
+    - 1.0
+    - -6.0
+    - -6.0
+  hi: 
+    - 5.0
+    - 3.0
+    - 6.0
+    - 6.0
+
+obstacles: []
+
+state_domain:
+  lo:
+    - -6.0
+    - 0.0
+    - -7.0
+    - -7.0
+  hi:
+    - 6.0
+    - 10.0
+    - 7.0
+    - 7.0
+  resolution:
+    - 41
+    - 41
+    - 41
+    - 41
+  periodic_dims: []
+  
+control_space:
+  n_dims: 2
+  lo:
+    - -0.5
+    - 0.0
+  hi: 
+    - 0.5
+    - 12.0
+
+disturbance_space:
+  n_dims: 0
+  lo: None
+  hi: None
