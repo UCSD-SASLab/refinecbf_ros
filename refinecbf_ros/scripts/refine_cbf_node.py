@@ -63,15 +63,15 @@ class SafetyFilterNode:
     def callback_safety_filter(self, control_msg):
         nom_control = np.array([control_msg.value])
         if self.state is None:
-            rospy.loginfo("State not set yet, no control published")
+            rospy.loginfo(" State not set yet, no control published")
             return
         if not self.initialized_safety_filter:
             safety_control_msg = control_msg
         else:
             safety_control_msg = Array()
             safety_control = self.safety_filter_solver(self.state.copy(), nominal_control=nom_control)
-            vf = np.array(self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)).item()
-            rospy.loginfo("value at current state:{}".format(vf))
+            # vf = np.array(self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)).item()
+            # rospy.loginfo("value at current state:{}".format(vf))
             safety_control_msg.value = safety_control[0].tolist()  # Ensures compatibility
         self.pub_filtered_control.publish(safety_control_msg)
 
