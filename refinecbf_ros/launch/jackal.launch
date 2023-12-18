@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="safety_filter_active" default="true" />
+  <!-- Topics -->
+  <arg name="robot_state_topic" default="/jackal_velocity_controller/odom" />
+  <arg name="cbf_state_topic" default="/safety_filter/state" />
+
+  <arg name="disturbance_update_topic" default="/env/disturbance_update" />
+  <arg name="actuation_update_topic" default="/env/actuation_update" />
+  <arg name="obstacle_update_topic" default="/env/obstacle_update" />
+  <arg name="vf_update_topic" default="/safety_filter/vf_update" />
+
+  <arg name="robot_safe_control_topic" default="/robot/final_control" />
+  <arg name="cbf_safe_control_topic" default="/safety_filter/safe_control" />
+
+  <arg name="cbf_nominal_control_topic" default="/safety_filter/nominal_control" />
+
+  <!-- Could be either set to intercepting the teleop commands or remapping turtlebot packages -->
+  <arg name="robot_external_control_topic" default="/jackal_velocity_controller/cmd_vel" />
+  <arg name="cbf_external_control_topic" default="/safety_filter/external_control" />
+  <arg name="publish_external_control_flag" default="/safety_filter/externally_controlled" />
+
+  <!-- Global parameters arguments -->
+  <arg name="dynamics_type" default="dubins_car" />
+  <arg name="grid_type" default="fine" />
+  <!-- Parameters -->
+  <param name="init_vf_file" value="$(find refinecbf_ros)/data/init_vf_tb3.npy" />
+  <param name="obstacle_file" value="$(find refinecbf_ros)/data/obstacle_tb3.npy" />
+  <param name="dynamics_type" value="$(arg dynamics_type)" />
+  <param name="grid_type" value="$(arg grid_type)" />
+
+  <arg name="config_file" default="turtlebot_env.yaml" />
+  <arg name="control_config_file" default="turtlebot_control.yaml" />
+
+  <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg config_file)" />
+  <arg name="control_config_file_loc"
+    value="$(find refinecbf_ros)/config/$(arg control_config_file)" />
+
+  <rosparam ns="env" file="$(arg config_file_loc)" command="load" />
+  <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
+
+  <node name="jackal_nominal_control"
+    pkg="refinecbf_ros"
+    type="tb_nominal_controller.py"
+    output="screen"
+    ns="safety_filter">
+    <param name="topics/state" value="$(arg cbf_state_topic)" />
+    <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
+    <param name="topics/external_control" value="$(arg cbf_external_control_topic)" />
+    <param name="topics/publish_external_control_flag" value="$(arg publish_external_control_flag)" />
+  </node>
+
+  <node name="jackal_hw_interface"
+    pkg="refinecbf_ros"
+    type="tb_hw_interface.py"
+    output="screen">
+    <param name="topics/robot_state" value="$(arg robot_state_topic)" />
+    <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
+    <param name="topics/robot_safe_control" value="$(arg robot_safe_control_topic)" />
+    <param name="topics/cbf_safe_control" value="$(arg cbf_safe_control_topic)" />
+    <param name="topics/robot_external_control" value="$(arg robot_external_control_topic)" />
+    <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
+  </node>
+
+  <group>
+    <remap from="$(arg robot_external_control_topic)" to="$(arg robot_safe_control_topic)" />
+    <include file="$(find jackal_gazebo)/launch/empty_world.launch">
+      <arg name="joystick" value="false" />
+    </include>
+  </group>
+
+  <include file="$(find refinecbf_ros)/launch/refine_cbf.launch">
+    <arg name="cbf_state_topic" value="$(arg cbf_state_topic)" />
+    <arg name="cbf_nominal_control_topic" value="$(arg cbf_nominal_control_topic)" />
+    <arg name="cbf_safe_control_topic" value="$(arg cbf_safe_control_topic)" />
+    <arg name="vf_update_topic" value="$(arg vf_update_topic)" />
+    <arg name="actuation_update_topic" value="$(arg actuation_update_topic)" />
+    <arg name="obstacle_update_topic" value="$(arg obstacle_update_topic)" />
+    <arg name="disturbance_update_topic" value="$(arg disturbance_update_topic)" />
+    <arg name="safety_filter_active" value="$(arg safety_filter_active)" />
+  </include>
+</launch>

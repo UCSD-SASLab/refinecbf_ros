@@ -2,6 +2,7 @@ import rospy
 import numpy as np
 import jax.numpy as jnp
 import jax
+import hj_reachability as hj
 from refinecbf_ros.msg import StateArray,ValueFunctionMsg
 from refinecbf_ros.config import Config
 from refinecbf_ros.srv import ActivateObstacle, ActivateObstacleResponse
@@ -60,7 +61,8 @@ class ObstacleDetectionNode:
 
     def update_sdf(self):
         sdf_msg = ValueFunctionMsg()
-        sdf_msg.vf = self.build_sdf(self.active_obstacles,self.boundary)
+        vf = self.build_sdf(self.active_obstacles,self.boundary)
+        sdf_msg.vf = hj.utils.multivmap(vf, jnp.arange(self.grid.ndim))(self.grid.states)
         self.obstacle_update_pub.publish(sdf_msg)    
 
     def callback_state(self, state_msg):

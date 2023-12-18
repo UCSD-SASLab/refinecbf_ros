@@ -84,11 +84,7 @@ class HJReachabilityNode:
         Returns:
             The safe space for the robot.
         """
-        bouding_box = self.setup_bounding_box(config)
-        combined_array = lambda state: bouding_box(state)
-        for obstacle in config.obstacles:
-            obstacle_array = self.setup_obstacle(obstacle)
-            combined_array = lambda state: jnp.min(jnp.array([combined_array, obstacle_array(state)]))
+        combined_array = lambda state: self.boundary.boundary_sdf(state)
         return combined_array
 
     def setup_bounding_box(self, config):

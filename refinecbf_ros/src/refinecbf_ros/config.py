@@ -50,8 +50,8 @@ class Config:
                 if obstacle["type"] == "Rectangle":
                     assert len(obstacle["minVal"]) == len(obstacle["indices"])
                     assert len(obstacle["maxVal"]) == len(obstacle["indices"]) 
-            assert len(self.boundary["minVal"]) == len(self.boundary["indices"])
-            assert len(self.boundary["maxVal"]) == len(self.boundary["indices"])
+            assert len(self.boundary_env["minVal"]) == len(self.boundary_env["indices"])
+            assert len(self.boundary_env["maxVal"]) == len(self.boundary_env["indices"])
         
     def setup_obstacles(self):
         detection_obstacles = [] # Obstacles that are "detected" by the robot when in close enough range
@@ -92,7 +92,7 @@ class Config:
         if self.dynamics_class == "quad_near_hover":            
             return QuadNearHoverPlanarDynamics(params={"g": 9.81}, dt=0.05, test=False)
         elif self.dynamics_class == "dubins_car":
-            return DubinsCarDynamics(dt=0.05, test=False)
+            return DubinsCarDynamics(params={},dt=0.05, test=False)
         else:
             raise ValueError("Invalid dynamics type: {}".format(self.dynamics_class))
 
