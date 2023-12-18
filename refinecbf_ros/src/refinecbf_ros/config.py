@@ -17,7 +17,9 @@ class Config:
 
         if hj_setup:
             self.safe_set = rospy.get_param("~/env/safe_set")
-            self.obstacles = rospy.get_param("~/env/obstacles")
+            self.obstacle_list = rospy.get_param("~/env/obstacles")
+            self.boundary_env = rospy.get_param("~/env/boundary")
+            self.detection_obstacles, self.service_obstacles, self.update_obstacles, self.boundary = self.setup_obstacles()
             if self.control_space["n_dims"] == 0:
                 control_space_hj = hj.sets.Box(lo=jnp.array([]), hi=jnp.array([]))
             else:
@@ -42,10 +44,49 @@ class Config:
         if hj_setup:
             assert len(self.safe_set["lo"]) == self.grid.ndim
             assert len(self.safe_set["hi"]) == self.grid.ndim
-            for obstacle in self.obstacles:
-                assert len(obstacle["lo"]) == self.grid.ndim
-                assert len(obstacle["hi"]) == self.grid.ndim
+            for obstacle in self.obstacle_list.values():
+                if obstacle["type"] == "Circle":
+                    assert len(obstacle["center"]) == len(obstacle["indices"]) 
+                if obstacle["type"] == "Rectangle":
+                    assert len(obstacle["minVal"]) == len(obstacle["indices"])
+                    assert len(obstacle["maxVal"]) == len(obstacle["indices"]) 
+            assert len(self.boundary["minVal"]) == len(self.boundary["indices"])
+            assert len(self.boundary["maxVal"]) == len(self.boundary["indices"])
         
+    def setup_obstacles(self):
+        detection_obstacles = [] # Obstacles that are "detected" by the robot when in close enough range
+        service_obstacles = [] # Obstalces that are activated by a service
+        update_obstacles = [] # Obstacles that become activated after a specified amount of time
+        for obstacle in self.obstacle_list.values():
+            if obstacle["mode"] == "Detection":
+                if obstacle["type"] == "Circle":
+                    detection_obstacles.append(Circle(stateIndices=obstacle["indices"],radius=obstacle["radius"],center=obstacle["center"],updateRule="Detection",padding=obstacle["padding"],detectionRadius=obstacle["detectionradius"]))
+                elif obstacle["type"] == "Rectangle":
+                    detection_obstacles.append(Rectangle(stateIndices=obstacle["indices"],minVal=obstacle["minVal"],MaxVal=obstacle["maxVal"],updateRule="Detection",padding=obstacle["padding"],detectionRadius=obstacle["detectionradius"]))
+                else:
+                    raise ValueError("Invalid Obstacle Type: {}".format(obstacle["type"]))
+            elif obstacle["mode"] == "Update":
+                if obstacle["type"] == "Circle":
+                    update_obstacles.append(Circle(stateIndices=obstacle["indices"],radius=obstacle["radius"],center=obstacle["center"],updateRule="Update",padding=obstacle["padding"],updateTime=obstacle["updatetime"]))
+                elif obstacle["type"] == "Rectangle":
+                    update_obstacles.append(Rectangle(stateIndices=obstacle["indices"],minVal=obstacle["minVal"],MaxVal=obstacle["maxVal"],updateRule="Update",padding=obstacle["padding"],updateTime=obstacle["updatetime"]))
+                else:
+                    raise ValueError("Invalid Obstacle Type: {}".format(obstacle["type"]))
+            elif obstacle["mode"] == "Service":
+                if obstacle["type"] == "Circle":
+                    service_obstacles.append(Circle(stateIndices=obstacle["indices"],radius=obstacle["radius"],center=obstacle["center"],updateRule="Service",padding=obstacle["padding"]))
+                elif obstacle["type"] == "Rectangle":
+                    service_obstacles.append(Rectangle(stateIndices=obstacle["indices"],minVal=obstacle["minVal"],MaxVal=obstacle["maxVal"],updateRule="Service",padding=obstacle["padding"]))
+                else:
+                    raise ValueError("Invalid Obstacle Type: {}".format(obstacle["type"]))
+            else:
+                raise ValueError("Invalid Obstacle Activation Type: {}".format(obstacle["mode"]))
+            
+        boundary = Boundary(stateIndices=self.boundary_env["indices"], minVal = self.boundary_env["minVal"], maxVal = self.boundary_env["maxVal"], padding = self.boundary_env["padding"])
+
+        return detection_obstacles, service_obstacles, update_obstacles, boundary
+                
+
         
     def setup_dynamics(self):
         if self.dynamics_class == "quad_near_hover":            
@@ -61,9 +102,73 @@ class Config:
         grid_resolution = self.state_domain["resolution"]
         p_dims = self.state_domain["periodic_dims"]
         return hj.Grid.from_lattice_parameters_and_boundary_conditions(bounding_box, grid_resolution,
+    
                                                                        periodic_dims=p_dims)
+# Obstacle Classes
+class Obstacle:
 
+    def __init__(self,type,stateIndices,updateRule,padding,updateTime,detectionRadius) -> None:
+        self.type = type
+        self.stateIndices = stateIndices
+        self.updateRule = updateRule
+        self.padding = padding
+        self.updateTime = updateTime
+        self.detectionRadius = detectionRadius
 
+class Circle(Obstacle):
+
+    def __init__(self,stateIndices,radius,center,updateRule="Time",padding=0,updateTime=None,detectionRadius=None) -> None:
+        super().__init__('Circle', stateIndices,updateRule,padding,updateTime,detectionRadius)
+        self.radius = radius
+        self.center = center
+
+    def obstacle_sdf(self,x):
+        obstacle_sdf = jnp.linalg.norm(jnp.array([self.center-x]))
+        return obstacle_sdf
+    
+    def distance_to_obstacle(self,state):
+        point = state(self.stateIndices)
+        distance = np.linalg.norm(self.center-point) - self.radius - self.padding
+        return max(distance,0.0)
+    
+class Rectangle(Obstacle):
+
+    def __init__(self,stateIndices,minVal,maxVal,updateRule="Time",padding=0,updateTime=None,detectionRadius=None) -> None:
+        super().__init__('Rectangle', stateIndices,updateRule,padding,updateTime,detectionRadius)
+        self.minVal = minVal
+        self.maxVal = maxVal
+
+    def obstacle_sdf(self,x):
+        max_dist_per_dim = jnp.max(jnp.array([self.minVal - x, x - self.maxVal]), axis=0)
+        def outside_obstacle(_):
+            return jnp.linalg.norm(jnp.maximum(max_dist_per_dim, 0))
+        def inside_obstacle(_):
+            return jnp.max(max_dist_per_dim)
+        obstacle_sdf = jax.lax.cond(jnp.all(max_dist_per_dim) < 0.0, inside_obstacle, outside_obstacle, operand=None)
+        return obstacle_sdf
+    
+    def distance_to_obstacle(self,state):
+        point = state(self.stateIndices)
+        if np.all(np.logical_and(self.minVal <= point, point <= self.maxVal)):
+            return 0.0
+        distances = np.abs(point - np.maximum(self.minVal, np.minimum(point, self.maxVal)))
+        return np.linalg.norm(distances)
+
+class Boundary(Rectangle):
+
+    def __init__(self, stateIndices, minVal, maxVal, padding=0) -> None:
+        super().__init__("Boundary",stateIndices,None,padding,updateTime=None,detectionRadius=None) 
+
+    def boundary_sdf(self,x):
+        max_dist_per_dim = jnp.max(jnp.array([self.minVal - x, x - self.maxVal]), axis=0)
+        def outside_boundary(_):
+            return -jnp.linalg.norm(jnp.maximum(max_dist_per_dim, 0))
+        def inside_boundary(_):
+            return -jnp.max(max_dist_per_dim)
+        obstacle_sdf = jax.lax.cond(jnp.all(max_dist_per_dim) < 0.0, inside_boundary, outside_boundary, operand=None)
+        return obstacle_sdf
+
+# Dynamics Classes
 class QuadNearHoverPlanarDynamics(ControlAffineDynamics):
     """
     Simplified dynamics, and we need to convert controls from phi to tan(phi)"""
