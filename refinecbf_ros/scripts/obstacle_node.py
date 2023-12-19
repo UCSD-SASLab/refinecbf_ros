@@ -1,13 +1,17 @@
+#!/usr/bin/env python3
+
 import rospy
 import numpy as np
 import jax.numpy as jnp
 import jax
 import hj_reachability as hj
-from refinecbf_ros.msg import StateArray,ValueFunctionMsg
+from refinecbf_ros.msg import Array,ValueFunctionMsg
 from refinecbf_ros.config import Config
 from refinecbf_ros.srv import ActivateObstacle, ActivateObstacleResponse
+import pdb
+import matplotlib.pyplot as plt
 
-class ObstacleDetectionNode:
+class ObstacleNode:
 
     def __init__(self) -> None:
         # Following publishers:
@@ -25,12 +29,12 @@ class ObstacleDetectionNode:
         self.boundary = config.boundary
         
         # Publishers:
-        obstacle_update_topic = rospy.get_param("~topics/obstacle_update_topic", "/env/obstacle_update")
+        obstacle_update_topic = rospy.get_param("~topics/obstacle_update", "/env/obstacle_update")
         self.obstacle_update_pub = rospy.Publisher(obstacle_update_topic, ValueFunctionMsg, queue_size=1)
 
         # Subscribers:
-        robot_state_topic = rospy.get_param("~topics/robot_state", "/state")
-        state_sub = rospy.Subscriber(robot_state_topic, StateArray, self.callback_state)
+        cbf_state_topic = rospy.get_param("~topics/cbf_state")
+        state_sub = rospy.Subscriber(cbf_state_topic, Array, self.callback_state)
 
         # Services:
         activate_obstacle_service = rospy.get_param("~services/activate_obstacle")
@@ -38,9 +42,17 @@ class ObstacleDetectionNode:
 
         # Initialize Active Obstacles (Just Boundary):
         self.active_obstacles = []
-        sdf_msg = ValueFunctionMsg()
-        sdf_msg.vf = self.build_sdf(self.active_obstacles,self.boundary)
-        self.obstacle_update_pub.publish(sdf_msg)
+        #breakpoint()
+        self.update_sdf()
+
+        #fig = plt.figure(figsize=(6, 5))
+        #f = plt.contourf(self.grid.coordinate_vectors[0], self.grid.coordinate_vectors[1], vf[:, :, self.grid.shape[2] // 2])
+        #plt.contour(self.grid.coordinate_vectors[0], self.grid.coordinate_vectors[1],vf[:, :, self.grid.shape[2] // 2].T, levels=[0], colors='k')
+        #plt.colorbar(f)
+        #plt.show()
+
+        #breakpoint()
+
 
 
     def obstacle_detection(self):
@@ -52,7 +64,7 @@ class ObstacleDetectionNode:
                     updatesdf = True
         for obstacle in self.update_obstacles: 
             if obstacle not in self.active_obstacles:
-                if obstacle.updateTime >= rospy.Time.now():
+                if obstacle.updateTime >= rospy.Time.now().to_sec():
                     self.active_obstacles.append(obstacle)
                     updatesdf = True
         
@@ -61,24 +73,16 @@ class ObstacleDetectionNode:
 
     def update_sdf(self):
         sdf_msg = ValueFunctionMsg()
-        vf = self.build_sdf(self.active_obstacles,self.boundary)
-        sdf_msg.vf = hj.utils.multivmap(vf, jnp.arange(self.grid.ndim))(self.grid.states)
+        sdf_msg.vf = hj.utils.multivmap(self.build_sdf(), jnp.arange(self.grid.ndim))(self.grid.states)
         self.obstacle_update_pub.publish(sdf_msg)    
 
     def callback_state(self, state_msg):
-        self.robot_state = np.array(state_msg.state)
+        self.robot_state = jnp.reshape(np.array(state_msg.value),(-1,1))
 
-    def build_sdf(boundary, obstacles):
-        """
-        Args:
-            boundary: [n x 2] matrix indicating upper and lower boundaries of safe space
-            obstacles: list of [n x 2] matrices indicating obstacles in the state space
-        Returns:
-            Function that can be queried for unbatched state vector
-        """
+    def build_sdf(self):
         def sdf(x):
-            sdf = boundary.boundary_sdf(x)
-            for obstacle in obstacles:
+            sdf = self.boundary.boundary_sdf(x)
+            for obstacle in self.active_obstacles:
                 obstacle_sdf = obstacle.obstacle_sdf(x)
                 sdf = jnp.min(jnp.array([sdf, obstacle_sdf]))
             return sdf
@@ -94,14 +98,15 @@ class ObstacleDetectionNode:
             self.active_obstacles.append(self.service_obstacles[obstacle_index])
             self.update_sdf()
             output = "Obstacle Activated"
+        return(ActivateObstacleResponse(output))
 
 
 if __name__ == "__main__":
-    rospy.init_node("obstacle_detection_node")
-    ObstacleDetection = ObstacleDetectionNode()
+    rospy.init_node("obstacle_node")
+    ObstacleNodeObject = ObstacleNode()
 
     rate = rospy.Rate(rospy.get_param("~/env/obstacle_update_rate_hz"))
 
     while not rospy.is_shutdown():
-        ObstacleDetection.obstacle_detection()
+        ObstacleNodeObject.obstacle_detection()
         rate.sleep()

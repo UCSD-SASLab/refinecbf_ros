@@ -14,10 +14,10 @@ from template.hw_interface import BaseInterface
 import math
 
 
-class TurtlebotInterface(BaseInterface):
+class JackalInterface(BaseInterface):
     """
     This class converts the state and control messages from the SafetyFilterNode to the correct type
-    for the Turtlebots.
+    for the Jackal.
     Each HW platform should have its own Interface node
     """
 
@@ -87,5 +87,5 @@ class TurtlebotInterface(BaseInterface):
 
 if __name__ == "__main__":
     rospy.init_node("interface")
-    TurtlebotInterface()
+    JackalInterface()
     rospy.spin()

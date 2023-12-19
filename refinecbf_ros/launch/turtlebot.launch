@@ -16,6 +16,9 @@
 
   <arg name="cbf_nominal_control_topic" default="/safety_filter/nominal_control" />
 
+  <!-- Services -->
+  <arg name="activate_obstacle_service" default="/env/activate_obstacle" />
+
   <!-- Could be either set to intercepting the teleop commands or remapping turtlebot packages -->
   <arg name="robot_external_control_topic" default="/cmd_vel" />
   <arg name="cbf_external_control_topic" default="/safety_filter/external_control" />
@@ -61,6 +64,15 @@
     <param name="topics/cbf_safe_control" value="$(arg cbf_safe_control_topic)" />
     <param name="topics/robot_external_control" value="$(arg robot_external_control_topic)" />
     <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
+  </node>
+
+  <node name="obstacle_node"
+    pkg="refinecbf_ros"
+    type="obstacle_node.py"
+    output="screen">
+    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+    <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
+    <param name="services/activate_obstacle" value="$(arg activate_obstacle_service)" />
   </node>
 
   <group>

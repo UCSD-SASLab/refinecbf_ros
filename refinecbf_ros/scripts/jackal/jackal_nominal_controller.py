@@ -14,7 +14,7 @@ from turtlebot3.hjr_nominal_control import NominalControlHJ
 from template.nominal_controller import NominalController
 
 
-class TurtlebotNominalControl(NominalController):
+class JackalNominalControl(NominalController):
     def __init__(self):
         super().__init__()
         self.config = Config(hj_setup=True)
@@ -54,8 +54,8 @@ class TurtlebotNominalControl(NominalController):
 
 
 if __name__ == "__main__":
-    rospy.init_node("tb3_nominal_control_node")
-    Controller = TurtlebotNominalControl()
+    rospy.init_node("jackal_nominal_control_node")
+    Controller = JackalNominalControl()
 
     rate = rospy.Rate(rospy.get_param("/ctr/nominal/frequency"))
 
