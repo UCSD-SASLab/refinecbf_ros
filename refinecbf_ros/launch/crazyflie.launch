@@ -14,6 +14,13 @@
   <arg name="robot_safe_control_topic" default="/robot/final_control" />
   <arg name="cbf_safe_control_topic" default="/safety_filter/safe_control" />
   <arg name="cbf_nominal_control_topic" default="/safety_filter/nominal_control" />
+
+  <arg name="obstacle_marker_topic" default="/visualization/obstacle_marker" />
+  <arg name="sdf_marker_topic" default="/visualization/sdf_marker" />
+  <arg name="vf_marker_topic" default="/visualization/vf_marker" />
+
+  <!-- Services -->
+  <arg name="activate_obstacle_service" default="/env/activate_obstacle" />
   
   <!-- Can be changed to accept commands from somewhere in cf stack -->
   <arg name="robot_external_control_topic" default="/robot/external_control" />
@@ -66,6 +73,27 @@
     <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
   </node>
 
+  <node name="obstacle_node"
+    pkg="refinecbf_ros"
+    type="obstacle_node.py"
+    output="screen">
+    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+    <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
+    <param name="services/activate_obstacle" value="$(arg activate_obstacle_service)" />
+  </node>
+
+  <node name="crazyflie_visualization"
+    pkg="refinecbf_ros"
+    type="cf_visualization.py"
+    output="screen">
+    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+    <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
+    <param name="topics/vf_update" value="$(arg vf_update_topic)" />
+    <param name="topics/obstacle_marker" value="$(arg obstacle_marker_topic)" />
+    <param name="topics/sdf_marker" value="$(arg sdf_marker_topic)" />
+    <param name="topics/vf_marker" value="$(arg vf_marker_topic)" />
+  </node>
+
   <include file="$(find refinecbf_ros)/launch/refine_cbf.launch">
     <arg name="safety_filter_active" value="$(arg safety_filter_active)" />
     <arg name="cbf_state_topic" value="$(arg cbf_state_topic)" />
@@ -87,7 +115,8 @@
 
   <!-- Frames of reference. -->
   <!-- Fixed frame gets written based on hardware on not hardware -->
-  <arg name="robot_frame" default="crazyflie" />
+  <arg name="robot_frame" value="crazyflie" unless="$(arg hardware)"/>
+  <arg name="robot_frame" value="robot_1" if="$(arg hardware)"/>
 
   <!-- Takeoff hover point. -->
   <arg name="takeoff_hover_x" default="0.0" />
@@ -189,7 +218,7 @@
     <arg name="robot_number" default="1" />
     <arg name="uri" default="radio://0/80/2M/E7E7E7E70$(arg robot_number)" />
 
-    <arg name="mocap_frame" default="vicon/robot_1/robot_1" />
+    <arg name="mocap_frame" default="/natnet_ros/robot_1/pose" />
 
     <!-- Joystick address -->
     <arg name="joy_dev" default="/dev/input/js0" />

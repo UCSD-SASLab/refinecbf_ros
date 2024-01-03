@@ -16,6 +16,10 @@
 
   <arg name="cbf_nominal_control_topic" default="/safety_filter/nominal_control" />
 
+  <arg name="obstacle_marker_topic" default="/visualization/obstacle_marker" />
+  <arg name="sdf_marker_topic" default="/visualization/sdf_marker" />
+  <arg name="vf_marker_topic" default="/visualization/vf_marker" />
+
   <!-- Services -->
   <arg name="activate_obstacle_service" default="/env/activate_obstacle" />
 
@@ -73,6 +77,18 @@
     <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
     <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
     <param name="services/activate_obstacle" value="$(arg activate_obstacle_service)" />
+  </node>
+
+  <node name="turtlebot_visualization"
+    pkg="refinecbf_ros"
+    type="tb_visualization.py"
+    output="screen">
+    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+    <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
+    <param name="topics/vf_update" value="$(arg vf_update_topic)" />
+    <param name="topics/obstacle_marker" value="$(arg obstacle_marker_topic)" />
+    <param name="topics/sdf_marker" value="$(arg sdf_marker_topic)" />
+    <param name="topics/vf_marker" value="$(arg vf_marker_topic)" />
   </node>
 
   <group>

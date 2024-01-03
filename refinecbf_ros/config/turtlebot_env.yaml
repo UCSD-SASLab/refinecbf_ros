@@ -13,31 +13,29 @@ obstacles:
   
   obstacle1:
     type: 'Circle'
-    mode: 'Detection'
+    mode: 'Active'
     indices:
       - 0
       - 1
     center: 
-      - 1.5
-      - 1.5
+      - -3
+      - 0
     radius: 1
-    padding: .1
-    detectionradius: .5
+    padding: .25
 
   obstacle2:
     type: 'Rectangle'
-    mode: 'Detection'
+    mode: 'Active'
     indices:
       - 0
       - 1
     minVal:
-      - -4.0
-      - -4.0
+      - 7.0
+      - 3.0
     maxVal:
-      - -3.0
-      - -3.0
-    padding: .1
-    detectionradius: .5
+      - 9.0
+      - 5.0
+    padding: .5
 
   obstacle3:
     type: 'Circle'
@@ -46,10 +44,10 @@ obstacles:
       - 0
       - 1
     center:
-      - -1.0
-      - 0.0
-    radius: .1
-    padding: .1
+      - -3.0
+      - 4.0
+    radius: 1
+    padding: .25
 
   obstacle4:
     type: 'Circle'
@@ -60,9 +58,22 @@ obstacles:
     center:
       - 0.0
       - -1.0
-    radius: .1
-    padding: .1
+    radius: .25
+    padding: .25
     updatetime: 5
+  
+  obstacle5:
+    type: 'Circle'
+    mode: 'Detection'
+    indices:
+      - 0
+      - 1
+    center:
+      - 4.0
+      - 0.0
+    radius: .5
+    padding: .25
+    detectionradius: 1
 
 boundary:
   padding: 0
@@ -96,10 +107,10 @@ state_domain:
 control_space:
   n_dims: 2
   lo:
-    - -1.0
-    - 0.0
+    - -0.2
+    - 0.1
   hi: 
-    - 1.0
+    - 0.2
     - 0.2
 
 disturbance_space:

@@ -10,9 +10,8 @@ from refinecbf_ros.config import Config
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from turtlebot3.hjr_nominal_control import NominalControlHJ
+from jackal.hjr_nominal_control import NominalControlHJ
 from template.nominal_controller import NominalController
-
 
 class JackalNominalControl(NominalController):
     def __init__(self):

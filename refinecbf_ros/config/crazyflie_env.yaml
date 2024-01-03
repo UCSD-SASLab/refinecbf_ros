@@ -11,7 +11,85 @@ safe_set:
     - 6.0
     - 6.0
 
-obstacles: []
+obstacles: 
+  
+  obstacle1:
+    type: 'Circle'
+    mode: 'Active'
+    indices:
+      - 0
+      - 1
+    center: 
+      - 3
+      - 1
+    radius: 1
+    padding: .25
+
+  obstacle2:
+    type: 'Rectangle'
+    mode: 'Active'
+    indices:
+      - 0
+      - 1
+    minVal:
+      - -4.0
+      - 3.0
+    maxVal:
+      - -3.0
+      - 4.0
+    padding: .25
+
+  obstacle3:
+    type: 'Circle'
+    mode: 'Service'
+    indices:
+      - 0
+      - 1
+    center:
+      - 3.0
+      - 4.0
+    radius: 1
+    padding: .25
+
+  obstacle4:
+    type: 'Circle'
+    mode: 'Update'
+    indices:
+      - 0
+      - 1
+    center:
+      - 0.0
+      - 1.0
+    radius: .25
+    padding: .25
+    updatetime: 5
+  
+  obstacle5:
+    type: 'Circle'
+    mode: 'Detection'
+    indices:
+      - 0
+      - 1
+    center:
+      - 1.0
+      - 2.0
+    radius: .5
+    padding: .25
+    detectionradius: 1
+
+boundary:
+  padding: 0
+  indices:
+    - 0
+    - 1
+  minVal:
+    - -6.0
+    - 0.0
+  maxVal:
+    - 6.0
+    - 10.0
+
+obstacle_update_rate_hz: 5
 
 state_domain:
   lo:

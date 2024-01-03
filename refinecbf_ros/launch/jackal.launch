@@ -16,7 +16,11 @@
 
   <arg name="cbf_nominal_control_topic" default="/safety_filter/nominal_control" />
 
-  <!-- Could be either set to intercepting the teleop commands or remapping turtlebot packages -->
+  <arg name="obstacle_marker_topic" default="/visualization/obstacle_marker" />
+  <arg name="sdf_marker_topic" default="/visualization/sdf_marker" />
+  <arg name="vf_marker_topic" default="/visualization/vf_marker" />
+
+  <!-- Could be either set to intercepting the teleop commands or remapping jackal packages -->
   <arg name="robot_external_control_topic" default="/jackal_velocity_controller/cmd_vel" />
   <arg name="cbf_external_control_topic" default="/safety_filter/external_control" />
   <arg name="publish_external_control_flag" default="/safety_filter/externally_controlled" />
@@ -30,8 +34,8 @@
   <param name="dynamics_type" value="$(arg dynamics_type)" />
   <param name="grid_type" value="$(arg grid_type)" />
 
-  <arg name="config_file" default="turtlebot_env.yaml" />
-  <arg name="control_config_file" default="turtlebot_control.yaml" />
+  <arg name="config_file" default="jackal_env.yaml" />
+  <arg name="control_config_file" default="jackal_control.yaml" />
 
   <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg config_file)" />
   <arg name="control_config_file_loc"
@@ -63,12 +67,17 @@
     <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
   </node>
 
-  <group>
-    <remap from="$(arg robot_external_control_topic)" to="$(arg robot_safe_control_topic)" />
-    <include file="$(find jackal_gazebo)/launch/empty_world.launch">
-      <arg name="joystick" value="false" />
-    </include>
-  </group>
+  <node name="jackal_visualization"
+    pkg="refinecbf_ros"
+    type="jackal_visualization.py"
+    output="screen">
+    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+    <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
+    <param name="topics/vf_update" value="$(arg vf_update_topic)" />
+    <param name="topics/obstacle_marker" value="$(arg obstacle_marker_topic)" />
+    <param name="topics/sdf_marker" value="$(arg sdf_marker_topic)" />
+    <param name="topics/vf_marker" value="$(arg vf_marker_topic)" />
+  </node>
 
   <include file="$(find refinecbf_ros)/launch/refine_cbf.launch">
     <arg name="cbf_state_topic" value="$(arg cbf_state_topic)" />
@@ -80,4 +89,14 @@
     <arg name="disturbance_update_topic" value="$(arg disturbance_update_topic)" />
     <arg name="safety_filter_active" value="$(arg safety_filter_active)" />
   </include>
+
+  <group>
+    <remap from="$(arg robot_external_control_topic)" to="$(arg robot_safe_control_topic)" />
+    <include file="$(find jackal_gazebo)/launch/empty_world.launch">
+      <arg name="joystick" value="false" />
+    </include>
+  </group>
+
+  <include file="$(find jackal_viz)/launch/view_robot.launch"/>
+
 </launch>
