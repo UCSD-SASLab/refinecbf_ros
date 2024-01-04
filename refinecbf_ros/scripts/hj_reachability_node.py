@@ -7,8 +7,7 @@ import jax.numpy as jnp
 from threading import Lock
 from refinecbf_ros.msg import ValueFunctionMsg, HiLoArray
 from refinecbf_ros.config import Config
-from refine_cbfs import HJControlAffineDynamics, TabularControlAffineCBF
-from cbf_opt import ControlAffineCBF
+from refine_cbfs import HJControlAffineDynamics
 
 
 class HJReachabilityNode:
