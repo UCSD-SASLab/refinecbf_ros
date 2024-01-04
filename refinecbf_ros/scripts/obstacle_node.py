@@ -50,13 +50,6 @@ class ObstacleNode:
         # Set start time
         self.startTime = rospy.Time().now().to_sec()
 
-        #vf = hj.utils.multivmap(self.build_sdf(), jnp.arange(self.grid.ndim))(self.grid.states)
-        #fig = plt.figure(figsize=(6, 5))
-        #f = plt.contourf(self.grid.coordinate_vectors[0], self.grid.coordinate_vectors[1], vf[:, :, self.grid.shape[2] // 2,self.grid.shape[3]//2].T)
-        #plt.contour(self.grid.coordinate_vectors[0], self.grid.coordinate_vectors[1],vf[:, :, self.grid.shape[2] // 2,self.grid.shape[3]//2].T, levels=[0], colors='k')
-        #plt.colorbar(f)
-        #plt.show()
-
     def obstacle_detection(self):
         updatesdf = False
         for obstacle in self.detection_obstacles:
