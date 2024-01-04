@@ -44,10 +44,6 @@ class HJReachabilityNode:
         self.sdf_values = np.array(
             rospy.wait_for_message(rospy.get_param("~topics/obstacle_update"), ValueFunctionMsg).vf
         ).reshape(self.grid.shape)
-        #cbf = DiffDriveCBF(self.dynamics,{"center": np.array([0.0,0.0]),"r": 0.5,"scalar": 1.0},test=False)
-        #cbf_values = TabularControlAffineCBF(self.dynamics,dict(),grid=self.grid)
-        #cbf_values.tabularize_cbf(cbf)
-        #self.sdf_values = cbf_values.vf_table
         self.brt = lambda sdf_values: lambda t, x: jnp.minimum(x, sdf_values)
         self.solver_settings = hj.SolverSettings.with_accuracy("medium", value_postprocessor=self.brt(self.sdf_values))
         self.vf = self.sdf_values
@@ -145,58 +141,6 @@ class HJReachabilityNode:
                 vf_msg.vf = np.array(self.vf).flatten()
                 self.vf_pub.publish(vf_msg)  # FIXME: Nate figure out better way
             rospy.sleep(1)  # To make sure that subscribers can run
-
-# Define a class called DiffDriveCBF.
-class DiffDriveCBF(ControlAffineCBF):
-    """
-    Class representing the control barrier function for the differential drive robot.
-
-    Inherits from the ControlAffineCBF class.
-    """
-
-    def __init__(self, dynamics, params, **kwargs) -> None:
-        """
-        Constructor method.
-
-        Args:
-            dynamics (DiffDriveDynamics): Dynamics of the differential drive robot.
-            params (dict, optional): Dictionary containing parameters. Defaults to an empty dictionary.
-            **kwargs: Variable number of keyword arguments.
-        """
-        self.center = params["center"]  # Center of the circle defined by 0-superlevel set of h(x)
-        self.r = params["r"]            # Radius of the circle defined by 0-superlevel set of h(x)
-        self.scalar = params["scalar"]  # Scalar multiplier of h(x)
-
-        super().__init__(dynamics, params, **kwargs)
-
-    def vf(self, state, time=0.0):
-        """
-        Value function (h(x)) method.
-
-        Args:
-            state (numpy.array): Array representing the state.
-            time (float, optional): Time value. Defaults to 0.0.
-
-        Returns:
-            jnp.array: JAX NumPy array representing the value function.
-        """
-        return self.scalar * (self.r ** 2 - (state[..., 0] - self.center[0]) ** 2 - (state[..., 1] - self.center[1]) ** 2)
-
-    def _grad_vf(self, state, time=0.0):
-        """
-        Gradient of the value function (del_h(x)) method.
-
-        Args:
-            state (numpy.array): Array representing the state.
-            time (float, optional): Time value. Defaults to 0.0.
-
-        Returns:
-            jnp.array: JAX NumPy array representing the gradient of the value function.
-        """
-        dvf_dx = np.zeros_like(state)
-        dvf_dx[..., 0] = -2 * (state[..., 0] - self.center[0])
-        dvf_dx[..., 1] = -2 * (state[..., 1] - self.center[1])
-        return self.scalar * dvf_dx
 
 if __name__ == "__main__":
     rospy.init_node("hj_reachability_node")
