@@ -39,15 +39,13 @@ class HJReachabilityNode:
         # Initialize a lock for thread-safe value function updates
         self.vf_lock = Lock()
 
-        # Set up safe space and initial value function
-        self.sdf = self.setup_safe_space(config=config)
-        self.sdf_values = hj.utils.multivmap(self.sdf, jnp.arange(self.grid.ndim))(self.grid.states)
-        initial_vf_file = rospy.get_param("~init_vf_file", None)
-        self.vf = np.load(initial_vf_file) if initial_vf_file else self.sdf_values
-        np.save("initial_vf.npy", self.vf)
-        # Set up solver settings
+        # Get initial safe space and setup solver
+        self.sdf_values = np.array(
+            rospy.wait_for_message(rospy.get_param("~topics/obstacle_update"), ValueFunctionMsg).vf
+        ).reshape(self.grid.shape)
         self.brt = lambda sdf_values: lambda t, x: jnp.minimum(x, sdf_values)
         self.solver_settings = hj.SolverSettings.with_accuracy("medium", value_postprocessor=self.brt(self.sdf_values))
+        self.vf = self.sdf_values
 
         # Set up value function publisher
         self.vf_topic = rospy.get_param("~topics/vf_update")
@@ -73,59 +71,6 @@ class HJReachabilityNode:
 
         # Start updating the value function
         self.update_vf()  # This keeps spinning
-
-    def setup_safe_space(self, config):
-        """
-        Sets up the safe space for the robot. This method should be called when an obstacle moves, disappears, or appears.
-        FIXME: Make sure it gets called again
-        Args:
-            config: The configuration for the robot.
-
-        Returns:
-            The safe space for the robot.
-        """
-        bouding_box = self.setup_bounding_box(config)
-        combined_array = lambda state: bouding_box(state)
-        for obstacle in config.obstacles:
-            obstacle_array = self.setup_obstacle(obstacle)
-            combined_array = lambda state: jnp.min(jnp.array([combined_array, obstacle_array(state)]))
-        return combined_array
-
-    def setup_bounding_box(self, config):
-        """
-        Sets up the bounding box for the robot's safe set.
-
-        Args:
-            config: The configuration for the robot.
-
-        Returns:
-            A function that takes a state and returns the minimum distance from the state to the bounding box.
-        """
-
-        def bounding_box(state):
-            lower_bound = state - jnp.array(config.safe_set["lo"])
-            upper_bound = jnp.array(config.safe_set["hi"]) - state
-            return jnp.min(jnp.concatenate([lower_bound, upper_bound]))
-
-        return bounding_box
-
-    def setup_obstacle(self, obstacle):
-        """
-        Sets up an obstacle.
-
-        Args:
-            obstacle: The obstacle to set up.
-
-        Returns:
-            A function that takes a state and returns the negative minimum distance from the state to the obstacle.
-        """
-
-        def obstacle_function(state):
-            lower_bound = state - jnp.array(obstacle["lo"])
-            upper_bound = jnp.array(obstacle["hi"]) - state
-            return -jnp.min(jnp.concatenate([lower_bound, upper_bound]))  # FIXME: I think this is wrong
-
-        return obstacle_function
 
     def callback_disturbance_update(self, msg):
         """
@@ -168,9 +113,9 @@ class HJReachabilityNode:
         """
         with self.vf_lock:
             rospy.loginfo("Updating obstacle")
-            self.obstacle = np.array(msg.vf).reshape(self.grid.shape)
+            self.sdf_values = np.array(msg.vf).reshape(self.grid.shape)
             self.solver_settings = hj.SolverSettings.with_accuracy(
-                "medium", value_postprocessor=self.brt(self.obstacle)
+                "medium", value_postprocessor=self.brt(self.sdf_values)
             )
 
     def update_dynamics(self):
@@ -192,10 +137,9 @@ class HJReachabilityNode:
                 )
                 self.vf = new_values
                 vf_msg = ValueFunctionMsg()
-                vf_msg.vf = self.vf.flatten()
+                vf_msg.vf = np.array(self.vf).flatten()
                 self.vf_pub.publish(vf_msg)  # FIXME: Nate figure out better way
-            rospy.sleep(0.001)  # To make sure that subscribers can run
-
+            rospy.sleep(1)  # To make sure that subscribers can run
 
 if __name__ == "__main__":
     rospy.init_node("hj_reachability_node")

@@ -14,10 +14,10 @@ from template.hw_interface import BaseInterface
 import math
 
 
-class TurtlebotInterface(BaseInterface):
+class JackalInterface(BaseInterface):
     """
     This class converts the state and control messages from the SafetyFilterNode to the correct type
-    for the Turtlebots.
+    for the Jackal.
     Each HW platform should have its own Interface node
     """
 
@@ -42,8 +42,7 @@ class TurtlebotInterface(BaseInterface):
         z = state_in_msg.pose.pose.orientation.z
 
         # Convert Quaternion to Yaw
-        yaw = np.arctan2(2 * (w * z + x * y), 1 - 2 * (np.power(y, 2) + np.power(z, 2))) + np.pi / 2 # FIXME: why is this necessary? I think it has something to do with the odom and rviz coordinate frames
-        yaw = np.arctan2(np.sin(yaw),np.cos(yaw)) # Remap yaw to -pi to pi range
+        yaw = np.arctan2(2 * (w * z + x * y), 1 - 2 * (np.power(y, 2) + np.power(z, 2))) + np.pi / 2 # FIXME: why is this necessary?
 
         state_out_msg = Array()
         state_out_msg.value = [state_in_msg.pose.pose.position.x, state_in_msg.pose.pose.position.y, yaw]
@@ -88,5 +87,5 @@ class TurtlebotInterface(BaseInterface):
 
 if __name__ == "__main__":
     rospy.init_node("interface")
-    TurtlebotInterface()
+    JackalInterface()
     rospy.spin()

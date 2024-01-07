@@ -7,3 +7,4 @@ This repository has been tested solely with ROS Noetic.
 - `hj_reachability`: https://github.com/StanfordASL/hj_reachability (git clone and then use `pip install -e .` for local installation. This should be using the same python version as your ROS
 - `cbf_opt`: https://github.com/stonkens/cbf_opt (same as above)
 - `refineCBF`: [https://github.com/UCSD-SASLab/refineCBF](https://github.com/UCSD-SASLab/refineCBF) (same as above)
+- `jackal-simulator`: `sudo apt-get install ros-noetic-jackal-simulator ros-noetic-jackal-desktop ros-noetic-jackal-navigation`

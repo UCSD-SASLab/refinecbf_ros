@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  std_srvs
   message_generation
 )
 
@@ -59,12 +60,12 @@ add_message_files(DIRECTORY msg FILES ${msg_files})
 #   Message2.msg
 # )
 
+file(GLOB srv_files RELATIVE ${PROJECT_SOURCE_DIR}/srv ${PROJECT_SOURCE_DIR}/srv/*.srv)
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  ActivateObstacle.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -111,7 +112,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES refinecbf_ros
- CATKIN_DEPENDS crazyflie_lqr crazyflie_ros roscpp rospy std_msgs message_runtime
+ CATKIN_DEPENDS crazyflie_lqr crazyflie_ros roscpp rospy std_msgs std_srvs message_runtime
 #  DEPENDS system_lib
 )
 
