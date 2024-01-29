@@ -65,11 +65,12 @@ class Visualization:
     def add_obstacles(self):
 
         obstacle_marker_id = 1
-        for obstacle in self.obstacle_dict.values():
-            # Create a Marker message for each obstacle
-            marker = self.obstacle_marker(obstacle,obstacle_marker_id)
-            self.obstacle_marker_publisher.publish(marker)
-            obstacle_marker_id = obstacle_marker_id + 1
+        if len(self.obstacle_dict) != 0:
+            for obstacle in self.obstacle_dict.values():
+                # Create a Marker message for each obstacle
+                marker = self.obstacle_marker(obstacle,obstacle_marker_id)
+                self.obstacle_marker_publisher.publish(marker)
+                obstacle_marker_id = obstacle_marker_id + 1
             
     def update_sdf_contour(self):
         
