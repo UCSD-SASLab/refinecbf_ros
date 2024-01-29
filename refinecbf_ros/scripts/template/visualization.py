@@ -3,7 +3,7 @@
 import rospy
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point, Pose
-from std_msgs.msg import ColorRGBA
+from std_msgs.msg import ColorRGBA, Bool
 from refinecbf_ros.msg import ValueFunctionMsg, Array
 from refinecbf_ros.config import Config
 import numpy as np
@@ -21,13 +21,13 @@ class Visualization:
         # Subscriber for SDF:
         obstacle_update_topic = rospy.get_param("~topics/obstacle_update")
         self.obstacle_update_sub = rospy.Subscriber(
-            obstacle_update_topic, ValueFunctionMsg, self.callback_sdf
+            obstacle_update_topic, Bool, self.callback_sdf
         )
 
         # Subscriber for vf:
         vf_topic = rospy.get_param("~topics/vf_update")
         self.vf_update_sub = rospy.Subscriber(
-            vf_topic, ValueFunctionMsg, self.callback_vf
+            vf_topic, Bool, self.callback_vf
         )
 
         # Subscriber for Robot State:
@@ -92,10 +92,14 @@ class Visualization:
 
 
     def callback_sdf(self,sdf_msg):
-        self.sdf = np.array(sdf_msg.vf).reshape(self.grid.shape)
+        if not sdf_msg.data:
+            return
+        self.sdf = np.array(np.load('./sdf.npy')).reshape(self.grid.shape)
 
     def callback_vf(self,vf_msg):
-        self.vf = np.array(vf_msg.vf).reshape(self.grid.shape)
+        if not vf_msg.data:
+            return
+        self.vf = np.array(np.load('./vf.npy')).reshape(self.grid.shape)
 
     def callback_state(self, state_msg):
         self.robot_state = jnp.reshape(np.array(state_msg.value), (-1, 1)).T

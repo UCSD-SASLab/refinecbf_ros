@@ -5,6 +5,7 @@ import numpy as np
 import hj_reachability as hj
 import jax.numpy as jnp
 from threading import Lock
+from std_msgs.msg import Bool
 from refinecbf_ros.msg import ValueFunctionMsg, HiLoArray
 from refinecbf_ros.config import Config
 from refine_cbfs import HJControlAffineDynamics
@@ -40,19 +41,23 @@ class HJReachabilityNode:
         self.vf_lock = Lock()
 
         # Get initial safe space and setup solver
-        self.sdf_values = np.array(
-            rospy.wait_for_message(rospy.get_param("~topics/obstacle_update"), ValueFunctionMsg).vf
-        ).reshape(self.grid.shape)
+        sdf_received = rospy.wait_for_message(rospy.get_param("~topics/obstacle_update"), Bool).data
+        if sdf_received:
+            self.sdf_values = np.array(
+                np.load('./sdf.npy')
+            ).reshape(self.grid.shape)
         self.brt = lambda sdf_values: lambda t, x: jnp.minimum(x, sdf_values)
         self.solver_settings = hj.SolverSettings.with_accuracy("medium", value_postprocessor=self.brt(self.sdf_values))
         self.vf = self.sdf_values
 
         # Set up value function publisher
         self.vf_topic = rospy.get_param("~topics/vf_update")
-        self.vf_pub = rospy.Publisher(self.vf_topic, ValueFunctionMsg, queue_size=1)
+        self.vf_pub = rospy.Publisher(self.vf_topic, Bool, queue_size=1)
 
         # Publish initial value function
-        self.vf_pub.publish(ValueFunctionMsg(vf=self.vf.flatten()))
+        np.save('./vf.npy',self.vf.flatten())
+        self.vf_pub.publish(Bool(True))
+
         self.update_vf_flag = True
 
         # Set up subscribers for disturbance, actuation, and obstacle updates
@@ -66,7 +71,7 @@ class HJReachabilityNode:
 
         obstacle_update_topic = rospy.get_param("~topics/obstacle_update")
         self.obstacle_update_sub = rospy.Subscriber(
-            obstacle_update_topic, ValueFunctionMsg, self.callback_obstacle_update
+            obstacle_update_topic, Bool, self.callback_obstacle_update
         )
 
         # Start updating the value function
@@ -111,9 +116,11 @@ class HJReachabilityNode:
 
         This method updates the obstacle and the solver settings.
         """
+        if not msg.data:
+            return
         with self.vf_lock:
             rospy.loginfo("Updating obstacle")
-            self.sdf_values = np.array(msg.vf).reshape(self.grid.shape)
+            self.sdf_values = np.array(np.load('./sdf.npy')).reshape(self.grid.shape)
             self.solver_settings = hj.SolverSettings.with_accuracy(
                 "medium", value_postprocessor=self.brt(self.sdf_values)
             )
@@ -136,8 +143,11 @@ class HJReachabilityNode:
                     self.solver_settings, self.hj_dynamics, self.grid, 0.0, self.vf.copy(), -0.1, progress_bar=False
                 )
                 self.vf = new_values
-                vf_msg = ValueFunctionMsg()
-                vf_msg.vf = np.array(self.vf).flatten()
+                vf =np.array(self.vf).flatten()
+                np.save('./vf.npy',vf)
+
+                vf_msg = Bool()
+                vf_msg.data = True
                 self.vf_pub.publish(vf_msg)  # FIXME: Nate figure out better way
             rospy.sleep(1)  # To make sure that subscribers can run
 
