@@ -54,12 +54,13 @@ class Config:
         if hj_setup:
             assert len(self.safe_set["lo"]) == self.grid.ndim
             assert len(self.safe_set["hi"]) == self.grid.ndim
-            for obstacle in self.obstacle_list.values():
-                if obstacle["type"] == "Circle":
-                    assert len(obstacle["center"]) == len(obstacle["indices"])
-                if obstacle["type"] == "Rectangle":
-                    assert len(obstacle["minVal"]) == len(obstacle["indices"])
-                    assert len(obstacle["maxVal"]) == len(obstacle["indices"])
+            if len(self.obstacle_list) != 0:
+                for obstacle in self.obstacle_list.values():
+                    if obstacle["type"] == "Circle":
+                        assert len(obstacle["center"]) == len(obstacle["indices"])
+                    if obstacle["type"] == "Rectangle":
+                        assert len(obstacle["minVal"]) == len(obstacle["indices"])
+                        assert len(obstacle["maxVal"]) == len(obstacle["indices"])
             assert len(self.boundary_env["minVal"]) == len(self.boundary_env["indices"])
             assert len(self.boundary_env["maxVal"]) == len(self.boundary_env["indices"])
 
@@ -68,103 +69,104 @@ class Config:
         service_obstacles = []  # Obstalces that are activated by a service
         update_obstacles = []  # Obstacles that become activated after a specified amount of time
         active_obstacles = [] # Obstacles that are always active
-        for obstacle in self.obstacle_list.values():
-            if obstacle["mode"] == "Detection":
-                if obstacle["type"] == "Circle":
-                    detection_obstacles.append(
-                        Circle(
-                            stateIndices=obstacle["indices"],
-                            radius=obstacle["radius"],
-                            center=obstacle["center"],
-                            updateRule="Detection",
-                            padding=obstacle["padding"],
-                            detectionRadius=obstacle["detectionradius"],
+        if len(self.obstacle_list) != 0:
+            for obstacle in self.obstacle_list.values():
+                if obstacle["mode"] == "Detection":
+                    if obstacle["type"] == "Circle":
+                        detection_obstacles.append(
+                            Circle(
+                                stateIndices=obstacle["indices"],
+                                radius=obstacle["radius"],
+                                center=obstacle["center"],
+                                updateRule="Detection",
+                                padding=obstacle["padding"],
+                                detectionRadius=obstacle["detectionradius"],
+                            )
                         )
-                    )
-                elif obstacle["type"] == "Rectangle":
-                    detection_obstacles.append(
-                        Rectangle(
-                            stateIndices=obstacle["indices"],
-                            minVal=obstacle["minVal"],
-                            maxVal=obstacle["maxVal"],
-                            updateRule="Detection",
-                            padding=obstacle["padding"],
-                            detectionRadius=obstacle["detectionradius"],
+                    elif obstacle["type"] == "Rectangle":
+                        detection_obstacles.append(
+                            Rectangle(
+                                stateIndices=obstacle["indices"],
+                                minVal=obstacle["minVal"],
+                                maxVal=obstacle["maxVal"],
+                                updateRule="Detection",
+                                padding=obstacle["padding"],
+                                detectionRadius=obstacle["detectionradius"],
+                            )
                         )
-                    )
+                    else:
+                        raise ValueError("Invalid Obstacle Type: {}".format(obstacle["type"]))
+                elif obstacle["mode"] == "Update":
+                    if obstacle["type"] == "Circle":
+                        update_obstacles.append(
+                            Circle(
+                                stateIndices=obstacle["indices"],
+                                radius=obstacle["radius"],
+                                center=obstacle["center"],
+                                updateRule="Update",
+                                padding=obstacle["padding"],
+                                updateTime=obstacle["updatetime"],
+                            )
+                        )
+                    elif obstacle["type"] == "Rectangle":
+                        update_obstacles.append(
+                            Rectangle(
+                                stateIndices=obstacle["indices"],
+                                minVal=obstacle["minVal"],
+                                maxVal=obstacle["maxVal"],
+                                updateRule="Update",
+                                padding=obstacle["padding"],
+                                updateTime=obstacle["updatetime"],
+                            )
+                        )
+                    else:
+                        raise ValueError("Invalid Obstacle Type: {}".format(obstacle["type"]))
+                elif obstacle["mode"] == "Service":
+                    if obstacle["type"] == "Circle":
+                        service_obstacles.append(
+                            Circle(
+                                stateIndices=obstacle["indices"],
+                                radius=obstacle["radius"],
+                                center=obstacle["center"],
+                                updateRule="Service",
+                                padding=obstacle["padding"],
+                            )
+                        )
+                    elif obstacle["type"] == "Rectangle":
+                        service_obstacles.append(
+                            Rectangle(
+                                stateIndices=obstacle["indices"],
+                                minVal=obstacle["minVal"],
+                                maxVal=obstacle["maxVal"],
+                                updateRule="Service",
+                                padding=obstacle["padding"],
+                            )
+                        )
+                elif obstacle["mode"] == "Active":
+                    if obstacle["type"] == "Circle":
+                        active_obstacles.append(
+                            Circle(
+                                stateIndices=obstacle["indices"],
+                                radius=obstacle["radius"],
+                                center=obstacle["center"],
+                                updateRule="Active",
+                                padding=obstacle["padding"],
+                            )
+                        )
+                    elif obstacle["type"] == "Rectangle":
+                        active_obstacles.append(
+                            Rectangle(
+                                stateIndices=obstacle["indices"],
+                                minVal=obstacle["minVal"],
+                                maxVal=obstacle["maxVal"],
+                                updateRule="Active",
+                                padding=obstacle["padding"],
+                            )
+                        )
+                    else:
+                        raise ValueError("Invalid Obstacle Type: {}".format(obstacle["type"]))
                 else:
-                    raise ValueError("Invalid Obstacle Type: {}".format(obstacle["type"]))
-            elif obstacle["mode"] == "Update":
-                if obstacle["type"] == "Circle":
-                    update_obstacles.append(
-                        Circle(
-                            stateIndices=obstacle["indices"],
-                            radius=obstacle["radius"],
-                            center=obstacle["center"],
-                            updateRule="Update",
-                            padding=obstacle["padding"],
-                            updateTime=obstacle["updatetime"],
-                        )
-                    )
-                elif obstacle["type"] == "Rectangle":
-                    update_obstacles.append(
-                        Rectangle(
-                            stateIndices=obstacle["indices"],
-                            minVal=obstacle["minVal"],
-                            maxVal=obstacle["maxVal"],
-                            updateRule="Update",
-                            padding=obstacle["padding"],
-                            updateTime=obstacle["updatetime"],
-                        )
-                    )
-                else:
-                    raise ValueError("Invalid Obstacle Type: {}".format(obstacle["type"]))
-            elif obstacle["mode"] == "Service":
-                if obstacle["type"] == "Circle":
-                    service_obstacles.append(
-                        Circle(
-                            stateIndices=obstacle["indices"],
-                            radius=obstacle["radius"],
-                            center=obstacle["center"],
-                            updateRule="Service",
-                            padding=obstacle["padding"],
-                        )
-                    )
-                elif obstacle["type"] == "Rectangle":
-                    service_obstacles.append(
-                        Rectangle(
-                            stateIndices=obstacle["indices"],
-                            minVal=obstacle["minVal"],
-                            maxVal=obstacle["maxVal"],
-                            updateRule="Service",
-                            padding=obstacle["padding"],
-                        )
-                    )
-            elif obstacle["mode"] == "Active":
-                if obstacle["type"] == "Circle":
-                    active_obstacles.append(
-                        Circle(
-                            stateIndices=obstacle["indices"],
-                            radius=obstacle["radius"],
-                            center=obstacle["center"],
-                            updateRule="Active",
-                            padding=obstacle["padding"],
-                        )
-                    )
-                elif obstacle["type"] == "Rectangle":
-                    active_obstacles.append(
-                        Rectangle(
-                            stateIndices=obstacle["indices"],
-                            minVal=obstacle["minVal"],
-                            maxVal=obstacle["maxVal"],
-                            updateRule="Active",
-                            padding=obstacle["padding"],
-                        )
-                    )
-                else:
-                    raise ValueError("Invalid Obstacle Type: {}".format(obstacle["type"]))
-            else:
-                raise ValueError("Invalid Obstacle Activation Type: {}".format(obstacle["mode"]))
+                    raise ValueError("Invalid Obstacle Activation Type: {}".format(obstacle["mode"]))
 
         boundary = Boundary(
             stateIndices=self.boundary_env["indices"],
