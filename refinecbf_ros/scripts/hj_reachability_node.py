@@ -7,7 +7,10 @@ import jax.numpy as jnp
 from threading import Lock
 from refinecbf_ros.msg import ValueFunctionMsg, HiLoArray
 from refinecbf_ros.config import Config
+from refinecbf_ros.config import CrazyflieCBF, CrazyflieDynamics #may not need if in launch file param is fed
 from refine_cbfs import HJControlAffineDynamics
+from cbf_opt import ControlAffineDynamics, ControlAffineCBF, ControlAffineASIF, SlackifiedControlAffineASIF, BatchedDynamics
+from refine_cbfs import HJControlAffineDynamics, TabularControlAffineCBF, TabularTVControlAffineCBF, utils
 
 
 class HJReachabilityNode:
@@ -45,15 +48,34 @@ class HJReachabilityNode:
         ).reshape(self.grid.shape)
         self.brt = lambda sdf_values: lambda t, x: jnp.minimum(x, sdf_values)
         self.solver_settings = hj.SolverSettings.with_accuracy("medium", value_postprocessor=self.brt(self.sdf_values))
-        self.vf = self.sdf_values
+
+        #loading yaml file information
+        self.initial_CBF_param= rospy.get_param('~CBF_param', 'initial_CBF_param.yaml')
+        
+        scaling = rospy.get_param('~scaling', [2.0, 2.0, 1.0, 1.0])
+        center = rospy.get_param('~center', [2.0, 2.0, 1.0, 1.0])
+        offset = rospy.get_param('~offset', 2.0)
+
+
+        self.dyn = CrazyflieDynamics(params={'g': 9.81}, dt=0.01, test=False)
+        self.batched_dyn = BatchedDynamics(self.dyn)
+        
+        # self.cbf_cf_params = {"scaling": jnp.array([2.0, 2.0, 1.0, 1.0]), "offset": 2.0, "center": jnp.array([-3.5, 2., 0.0, 0.])}
+        self.cbf_cf_params = {"scaling": jnp.array(scaling), "offset": offset, "center": jnp.array(center)}
+        self.cbf_cf = CrazyflieCBF(self.batched_dyn, self.cbf_cf_params, test=False)
+    
+        self.tabular_cbf = TabularControlAffineCBF(self.batched_dyn, self.cbf_cf_params, test=False, grid=self.grid)
+        self.tabular_cbf.tabularize_cbf(self.cbf_cf)
+                                         
+        self.vf = self.tabular_cbf.vf_table
 
         # Set up value function publisher
         self.vf_topic = rospy.get_param("~topics/vf_update")
         self.vf_pub = rospy.Publisher(self.vf_topic, ValueFunctionMsg, queue_size=1)
 
         # Publish initial value function
-        self.vf_pub.publish(ValueFunctionMsg(vf=self.vf.flatten()))
-        self.update_vf_flag = True
+        self.vf_pub.publish(ValueFunctionMsg(vf=self.vf.flatten())) 
+        self.update_vf_flag = False #Changed to false for now
 
         # Set up subscribers for disturbance, actuation, and obstacle updates
         disturbance_update_topic = rospy.get_param("~topics/disturbance_update")

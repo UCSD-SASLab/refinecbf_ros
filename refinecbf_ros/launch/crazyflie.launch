@@ -39,7 +39,8 @@
   <param name="dynamics_type" value="$(arg dynamics_type)" />
   <param name="grid_type" value="$(arg grid_type)" />
   
-  <arg name="config_file" default="crazyflie_env.yaml" />
+  <!-- <arg name="config_file" default="crazyflie_env.yaml" /> -->
+  <arg name="config_file" default="simple_refinecbf_env.yaml" />
   <arg name="control_config_file" default="crazyflie_control.yaml" />
 
   <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg config_file)" />

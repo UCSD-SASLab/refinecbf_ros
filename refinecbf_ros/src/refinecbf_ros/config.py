@@ -1,10 +1,13 @@
 import hj_reachability as hj
 import jax.numpy as jnp
 import jax
-from cbf_opt import ControlAffineDynamics
-from refine_cbfs import HJControlAffineDynamics
+from cbf_opt import ControlAffineDynamics, ControlAffineCBF, ControlAffineASIF, SlackifiedControlAffineASIF, BatchedDynamics
+from refine_cbfs import HJControlAffineDynamics, TabularControlAffineCBF, TabularTVControlAffineCBF, utils
 import numpy as np
 import rospy
+# import sys
+# sys.path.append('/home/sosuke/refineCBF/refine_cbfs')
+
 
 
 class Config:
@@ -312,3 +315,42 @@ class DubinsCarDynamics(ControlAffineDynamics):
 
     # def disturbance_jacobian(self, state, time: float = 0.0):
     #     return jnp.array([[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]])
+
+
+#Defining the dynamics of the quadrotor
+class CrazyflieDynamics(ControlAffineDynamics):
+    """
+    Simplified dynamics, and we need to convert controls from phi to tan(phi)"""
+    STATES = ["y", "z", "v_y", "v_z"]
+    CONTROLS = ["tan(phi)", "T"]
+    DISTURBANCES = []
+    def __init__(self, params, test=True, **kwargs):
+        super().__init__(params, test, **kwargs)
+    
+    def open_loop_dynamics(self, state, time: float = 0.0):
+        return jnp.array([state[2], state[3], 0.0, -self.params['g']])
+
+    def control_matrix(self, state, time: float = 0.0):
+        return jnp.array([[0.0, 0.0], [0.0, 0.0], [self.params['g'], 0.0], [0.0, 1.0]])
+    
+    def state_jacobian(self, state, control, disturbance = None, time: float = 0.0):
+        return jax.jacfwd(lambda x: self.__call__(x, control, disturbance, time))(state)
+    
+
+#Implementing creating CBF 
+class CrazyflieCBF(ControlAffineCBF):
+    def __init__(self, dynamics, params, test=False, **kwargs):
+        self.scaling = params["scaling"] 
+        self.center = params["center"]
+        self.offset = params["offset"]
+        self._vf_grad = jax.vmap(jax.grad(self.vf, argnums=0), in_axes=(0, None))
+        super().__init__(dynamics, params, test=False, **kwargs)
+    
+    def vf(self, state, time=0.0):
+        val = (self.offset - jnp.sum(self.scaling * (state - self.center) ** 2, axis=-1))
+        return val
+        # return jnp.where(val > 0, val, 0.1 * val)
+    
+    def _grad_vf(self, state, time=0.0):
+        return self._vf_grad(state, time)
+    
