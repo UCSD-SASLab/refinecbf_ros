@@ -2,11 +2,13 @@
 
 import rospy
 import numpy as np
+import jax.numpy as jnp
 from refinecbf_ros.msg import ValueFunctionMsg, Array, HiLoArray
 from cbf_opt import ControlAffineASIF
 from refine_cbfs import TabularControlAffineCBF
 from refinecbf_ros.config import Config
-
+from refinecbf_ros.config import CrazyflieCBF, CrazyflieDynamics
+from cbf_opt import ControlAffineDynamics, ControlAffineCBF, ControlAffineASIF, SlackifiedControlAffineASIF, BatchedDynamics
 
 class SafetyFilterNode:
     """
@@ -23,8 +25,17 @@ class SafetyFilterNode:
         self.dynamics = config.dynamics 
         self.grid = config.grid
 
+        self.dyn = CrazyflieDynamics(params={'g': 9.81}, dt=0.01, test=False)
+        self.batched_dyn = BatchedDynamics(self.dyn)
+
+        self.cbf_cf_params = {"scaling": jnp.array([2.0, 2.0, 1.0, 1.0]), "offset": 2.0, "center": jnp.array([-3.5, 2., 0.0, 0.])}
+        self.cbf_cf = CrazyflieCBF(self.batched_dyn, self.cbf_cf_params, test=False)
+
         self.cbf = TabularControlAffineCBF(self.dynamics, grid=self.grid)
         self.safety_filter_solver = ControlAffineASIF(self.dynamics, self.cbf)
+       
+        self.cbf.tabularize_cbf(self.cbf_cf)
+
         self.safety_filter_solver.umin = np.array(config.control_space["lo"])
         self.safety_filter_solver.umax = np.array(config.control_space["hi"])
 
@@ -42,6 +53,7 @@ class SafetyFilterNode:
             # This has to be done to ensure real-time performance
             self.initialized_safety_filter = False
             self.safety_filter_solver.setup_optimization_problem()
+            rospy.logwarn("safety filter is active!")
 
         else:
             self.initialized_safety_filter = True
@@ -65,14 +77,16 @@ class SafetyFilterNode:
         if self.state is None:
             rospy.loginfo(" State not set yet, no control published")
             return
-        if not self.initialized_safety_filter:
+        if not self.initialized_safety_filter: #if initialzied_safety_filter=False, goes here which we don't want
             safety_control_msg = control_msg
+            rospy.loginfo("Safety filter not initialized, gonna use nominal")
         else:
             safety_control_msg = Array()
+            vf = np.array(self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)).item() #used to be commented and placed below safet_control =self.
+            rospy.loginfo("value at current state:{}".format(vf)) #Used to be commented
             safety_control = self.safety_filter_solver(self.state.copy(), nominal_control=nom_control)
-            # vf = np.array(self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)).item()
-            # rospy.loginfo("value at current state:{}".format(vf))
             safety_control_msg.value = safety_control[0].tolist()  # Ensures compatibility
+
         self.pub_filtered_control.publish(safety_control_msg)
 
     def callback_state(self, state_est_msg):

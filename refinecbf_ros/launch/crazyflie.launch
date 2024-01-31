@@ -2,7 +2,7 @@
 
 <launch>
   <!-- Topics -->
-  <arg name="safety_filter_active" default="true" />
+  <arg name="safety_filter_active" default="True" />
   <arg name="robot_state_topic" default="/state" />
   <arg name="cbf_state_topic" default="/safety_filter/state" />
 
