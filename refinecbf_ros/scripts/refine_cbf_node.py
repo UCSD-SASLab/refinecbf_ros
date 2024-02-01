@@ -22,7 +22,7 @@ class SafetyFilterNode:
         self.state_sub = rospy.Subscriber(self.state_topic, Array, self.callback_state)
         
         config = Config(hj_setup=True)
-        self.dynamics = config.dynamics 
+        self.dynamics = config.dynamics #FIXME: Likely cause of problem
         self.grid = config.grid
 
         self.dyn = CrazyflieDynamics(params={'g': 9.81}, dt=0.01, test=False)
@@ -34,7 +34,7 @@ class SafetyFilterNode:
         self.cbf = TabularControlAffineCBF(self.dynamics, grid=self.grid)
         self.safety_filter_solver = ControlAffineASIF(self.dynamics, self.cbf)
        
-        self.cbf.tabularize_cbf(self.cbf_cf)
+        self.cbf.tabularize_cbf(self.cbf_cf) #FIXME Leading to assert error
 
         self.safety_filter_solver.umin = np.array(config.control_space["lo"])
         self.safety_filter_solver.umax = np.array(config.control_space["hi"])

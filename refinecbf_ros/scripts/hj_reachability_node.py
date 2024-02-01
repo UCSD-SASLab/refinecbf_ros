@@ -11,7 +11,7 @@ from refinecbf_ros.config import CrazyflieCBF, CrazyflieDynamics #may not need i
 from refine_cbfs import HJControlAffineDynamics
 from cbf_opt import ControlAffineDynamics, ControlAffineCBF, ControlAffineASIF, SlackifiedControlAffineASIF, BatchedDynamics
 from refine_cbfs import HJControlAffineDynamics, TabularControlAffineCBF, TabularTVControlAffineCBF, utils
-
+import os
 
 class HJReachabilityNode:
     """
@@ -65,16 +65,18 @@ class HJReachabilityNode:
         self.cbf_cf = CrazyflieCBF(self.batched_dyn, self.cbf_cf_params, test=False)
     
         self.tabular_cbf = TabularControlAffineCBF(self.batched_dyn, self.cbf_cf_params, test=False, grid=self.grid)
-        self.tabular_cbf.tabularize_cbf(self.cbf_cf)
-                                         
-        self.vf = self.tabular_cbf.vf_table
+        # self.tabular_cbf.tabularize_cbf(self.cbf_cf)
+        file_path = os.path.join('/home/sosuke/ros1_ws/crazyflie_clean/ros/src/refinecbf_ros_sk/refinecbf_ros/scripts', 'target_values.npy') #FIXME Hard-coded
+        target_values = np.load(file_path)
+                                
+        self.tabular_cbf = target_values[-1] # Take the last value (when converged)
 
         # Set up value function publisher
         self.vf_topic = rospy.get_param("~topics/vf_update")
         self.vf_pub = rospy.Publisher(self.vf_topic, ValueFunctionMsg, queue_size=1)
 
         # Publish initial value function
-        self.vf_pub.publish(ValueFunctionMsg(vf=self.vf.flatten())) 
+        self.vf_pub.publish(ValueFunctionMsg(vf=self.tabular_cbf.flatten())) 
         self.update_vf_flag = False #Changed to false for now
 
         # Set up subscribers for disturbance, actuation, and obstacle updates
