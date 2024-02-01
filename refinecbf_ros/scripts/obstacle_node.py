@@ -8,6 +8,7 @@ import hj_reachability as hj
 from refinecbf_ros.msg import Array, ValueFunctionMsg
 from refinecbf_ros.config import Config
 from refinecbf_ros.srv import ActivateObstacle, ActivateObstacleResponse
+from std_msgs.msg import Bool
 import pdb
 import matplotlib.pyplot as plt
 
@@ -30,8 +31,15 @@ class ObstacleNode:
         self.boundary = config.boundary
 
         # Publishers:
+        self.vf_update_method = rospy.get_param("~vf_update_method")
+
         obstacle_update_topic = rospy.get_param("~topics/obstacle_update", "/env/obstacle_update")
-        self.obstacle_update_pub = rospy.Publisher(obstacle_update_topic, ValueFunctionMsg, queue_size=1)
+        if self.vf_update_method == "pubsub":
+            self.obstacle_update_pub = rospy.Publisher(obstacle_update_topic, ValueFunctionMsg, queue_size=1)
+        elif self.vf_update_method == "file":
+            self.obstacle_update_pub = rospy.Publisher(obstacle_update_topic, Bool, queue_size=1)
+        else:
+            raise NotImplementedError("{} is not a valid vf update method".format(self.vf_update_method))
 
         # Subscribers:
         cbf_state_topic = rospy.get_param("~topics/cbf_state")
@@ -67,9 +75,12 @@ class ObstacleNode:
             self.update_sdf()
 
     def update_sdf(self):
-        sdf_msg = ValueFunctionMsg()
-        sdf_msg.vf = hj.utils.multivmap(self.build_sdf(), jnp.arange(self.grid.ndim))(self.grid.states).flatten()
-        self.obstacle_update_pub.publish(sdf_msg)
+        sdf = hj.utils.multivmap(self.build_sdf(), jnp.arange(self.grid.ndim))(self.grid.states)
+        if self.vf_update_method == "pubsub":
+            self.obstacle_update_pub.publish(ValueFunctionMsg(sdf.flatten()))
+        else:  # self.vf_update_method == "file"
+            np.save("./sdf.npy", sdf)
+            self.obstacle_update_pub.publish(Bool(True))
 
     def callback_state(self, state_msg):
         self.robot_state = jnp.reshape(np.array(state_msg.value), (-1, 1))

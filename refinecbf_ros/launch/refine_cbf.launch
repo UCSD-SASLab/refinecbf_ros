@@ -13,6 +13,7 @@
     <arg name="vf_initialization_method" />
     <arg name="CBF_parameter_file" />
     <arg name="initial_vf_file" />
+    <arg name="vf_update_method" />
     
 
     <node name="refine_cbf"
@@ -26,6 +27,7 @@
         <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
         <param name="topics/vf_update" value="$(arg vf_update_topic)" />
         <param name="safety_filter_active" value="$(arg safety_filter_active)" />
+        <param name="vf_update_method" value="$(arg vf_update_method)" />
     </node>
     <arg name="CBF_parameter_file_loc" value="$(find refinecbf_ros)/config/$(arg CBF_parameter_file)" />
     <rosparam ns="cbf" file="$(arg CBF_parameter_file_loc)" command="load" />
@@ -43,6 +45,7 @@
             <param name="topics/vf_update" value="$(arg vf_update_topic)" />
             <param name="update_vf_online" value="$(arg update_vf_online)" />
             <param name="vf_initialization_method" value="$(arg vf_initialization_method)" />
+            <param name="vf_update_method" value="$(arg vf_update_method)" />
         </node>
     </group>
 

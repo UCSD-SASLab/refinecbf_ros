@@ -11,10 +11,18 @@
          Options: 
           1. cbf:   Load as CBF with parameters set in CBF yaml file
           2. file:  Load as state_discretized value function 
-          3. sdf:   Have the signed distance function be used -->
+          3. sdf:   Have the signed distance function be used 
+    -->
   <arg name="vf_initialization_method" default="cbf" />
     <!-- Simulation or hardware -->
   <arg name="hardware" default="false" />
+
+    <!-- What message passing method to use
+          Options:
+           1. pubsub:   flattens the vf and passes it 
+           2. file:     Saves it as a file and pubsubs a Boolean
+    -->
+  <arg name="vf_update_method" default="pubsub" />
 
   <!-- Choose which files to load to describe the environment -->
   <arg name="env_config_file" default="simple_refinecbf_env.yaml" />
@@ -103,6 +111,7 @@
     <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
     <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
     <param name="services/activate_obstacle" value="$(arg activate_obstacle_service)" />
+    <param name="vf_update_method" value="$(arg vf_update_method)" />
   </node>
 
   <node name="crazyflie_visualization"
@@ -115,6 +124,7 @@
     <param name="topics/obstacle_marker" value="$(arg obstacle_marker_topic)" />
     <param name="topics/sdf_marker" value="$(arg sdf_marker_topic)" />
     <param name="topics/vf_marker" value="$(arg vf_marker_topic)" />
+    <param name="vf_update_method" value="$(arg vf_update_method)" />
   </node>
 
   <include file="$(find refinecbf_ros)/launch/refine_cbf.launch">
@@ -130,6 +140,7 @@
     <arg name="update_vf_online" value="$(arg update_vf_online)" />
     <arg name="CBF_parameter_file" value="$(arg CBF_parameter_file)" />
     <arg name="initial_vf_file" value="$(arg initial_vf_file)" />
+    <arg name="vf_update_method" value="$(arg vf_update_method)" />
   </include>
 
   <!-- Arguments for child launch files -->
