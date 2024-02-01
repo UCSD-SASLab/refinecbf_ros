@@ -2,6 +2,7 @@
 
 import rospy
 import numpy as np
+import jax.numpy as jnp
 from refinecbf_ros.msg import ValueFunctionMsg, Array, HiLoArray
 from std_msgs.msg import Bool
 from cbf_opt import ControlAffineASIF

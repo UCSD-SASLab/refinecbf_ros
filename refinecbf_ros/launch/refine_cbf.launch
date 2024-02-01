@@ -14,7 +14,6 @@
     <arg name="CBF_parameter_file" />
     <arg name="initial_vf_file" />
     <arg name="vf_update_method" />
-    
 
     <node name="refine_cbf"
         pkg="refinecbf_ros"

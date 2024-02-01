@@ -96,7 +96,7 @@ class HJReachabilityNode:
         else:  # self.vf_update_method == "file"
             np.save("./vf.npy", self.vf)
             self.vf_pub.publish(Bool(True))
-
+        
         self.update_vf_flag = rospy.get_param("~update_vf_online")
         if not self.update_vf_flag:
             rospy.logwarn("Value function is not being updated")
@@ -203,6 +203,7 @@ class HJReachabilityNode:
                     progress_bar=False,
                 )
                 self.vf = new_values
+
                 rospy.loginfo("New vf calculated")
                 if self.vf_update_method == "pubsub":
                     self.vf_pub.publish(ValueFunctionMsg(np.array(self.vf).flatten()))
@@ -210,6 +211,7 @@ class HJReachabilityNode:
                     np.save("./vf.npy", self.vf)
                     self.vf_pub.publish(Bool(True))
             rospy.sleep(0.05)  # To make sure that subscribers can run
+
 
 
 if __name__ == "__main__":
