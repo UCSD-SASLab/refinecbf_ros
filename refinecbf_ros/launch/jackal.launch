@@ -1,49 +1,80 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="safety_filter_active" default="true" />
-  <!-- Topics -->
-  <arg name="robot_state_topic" default="/jackal_velocity_controller/odom" />
-  <arg name="cbf_state_topic" default="/safety_filter/state" />
+<!-- Topics that need to be chosen by user and can be varied-->
 
-  <arg name="disturbance_update_topic" default="/env/disturbance_update" />
-  <arg name="actuation_update_topic" default="/env/actuation_update" />
-  <arg name="obstacle_update_topic" default="/env/obstacle_update" />
-  <arg name="vf_update_topic" default="/safety_filter/vf_update" />
+    <!-- Whether we want to use nominal / external control or a safety filter -->
+  <arg name="safety_filter_active" default="True" />
+  
+    <!-- Whether we want a single fixed value function (no updating) or updating using hj_reachability_node -->
+  <arg name="update_vf_online" default="True" /> 
+  
+    <!-- What type of initial value function do we have
+         This only is relevant if the safety_filter_active = True
+         Options: 
+          1. cbf:   Load as CBF with parameters set in CBF yaml file
+          2. file:  Load as state_discretized value function 
+          3. sdf:   Have the signed distance function be used 
+    -->
+  <arg name="vf_initialization_method" default="cbf" />
+  
+    <!-- Simulation or hardware -->
+  <arg name="hardware" default="false" />
 
-  <arg name="robot_safe_control_topic" default="/robot/final_control" />
-  <arg name="cbf_safe_control_topic" default="/safety_filter/safe_control" />
+    <!-- What message passing method to use
+          Options:
+           1. pubsub:   flattens the vf and passes it 
+           2. file:     Saves it as a file and pubsubs a Boolean
+    -->
+  <arg name="vf_update_method" default="pubsub" />
 
-  <arg name="cbf_nominal_control_topic" default="/safety_filter/nominal_control" />
-
-  <arg name="obstacle_marker_topic" default="/visualization/obstacle_marker" />
-  <arg name="sdf_marker_topic" default="/visualization/sdf_marker" />
-  <arg name="vf_marker_topic" default="/visualization/vf_marker" />
-
-  <!-- Could be either set to intercepting the teleop commands or remapping jackal packages -->
-  <arg name="robot_external_control_topic" default="/jackal_velocity_controller/cmd_vel" />
-  <arg name="cbf_external_control_topic" default="/safety_filter/external_control" />
-  <arg name="publish_external_control_flag" default="/safety_filter/externally_controlled" />
-
-  <!-- Global parameters arguments -->
-  <arg name="dynamics_type" default="dubins_car" />
-  <arg name="grid_type" default="fine" />
-  <!-- Parameters -->
-  <param name="init_vf_file" value="$(find refinecbf_ros)/data/init_vf_tb3.npy" />
-  <param name="obstacle_file" value="$(find refinecbf_ros)/data/obstacle_tb3.npy" />
-  <param name="dynamics_type" value="$(arg dynamics_type)" />
-  <param name="grid_type" value="$(arg grid_type)" />
-
-  <arg name="config_file" default="jackal_env.yaml" />
+    <!-- Choose which files to load to describe the environment -->
+  <arg name="env_config_file" default="jackal_env.yaml" />
+  
+    <!-- Choose which files to load to describe the refinecbf internal nominal controller -->
   <arg name="control_config_file" default="jackal_control.yaml" />
 
-  <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg config_file)" />
+    <!-- Choose the name of CBF parameter file or initial vf file -->
+  <arg name="CBF_parameter_file" default="jackal_CBF_params.yaml" />
+  <arg name="initial_vf_file" default="jackal_vf.npy" />
+
+
+  <!-- ___________________________________________________________________________________________________________ -->
+  <!-- Topics that are typically fixed and are shared between different launch files -->
+  <arg name="robot_state_topic" value="/jackal_velocity_controller/odom" />
+  <arg name="cbf_state_topic" value="/safety_filter/state" />
+
+  <arg name="disturbance_update_topic" value="/env/disturbance_update" />
+  <arg name="actuation_update_topic" value="/env/actuation_update" />
+  <arg name="obstacle_update_topic" value="/env/obstacle_update" />
+  <arg name="vf_update_topic" value="/safety_filter/vf_update" />
+
+  <arg name="robot_safe_control_topic" value="/robot/final_control" />
+  <arg name="cbf_safe_control_topic" value="/safety_filter/safe_control" />
+  <arg name="cbf_nominal_control_topic" value="/safety_filter/nominal_control" />
+
+  <arg name="obstacle_marker_topic" value="/visualization/obstacle_marker" />
+  <arg name="sdf_marker_topic" value="/visualization/sdf_marker" />
+  <arg name="vf_marker_topic" value="/visualization/vf_marker" />
+
+  <!-- Services -->
+  <arg name="activate_obstacle_service" value="/env/activate_obstacle" />
+
+  <!-- Could be either set to intercepting the teleop commands or remapping jackal packages -->
+  <arg name="robot_external_control_topic" value="/jackal_velocity_controller/cmd_vel" />
+  <arg name="cbf_external_control_topic" value="/safety_filter/external_control" />
+  <arg name="publish_external_control_flag" value="/safety_filter/externally_controlled" />
+
+
+  <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg env_config_file)" />
+  <rosparam ns="env" file="$(arg config_file_loc)" command="load" />
+  
   <arg name="control_config_file_loc"
     value="$(find refinecbf_ros)/config/$(arg control_config_file)" />
-
-  <rosparam ns="env" file="$(arg config_file_loc)" command="load" />
   <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
 
+  <!-- ___________________________________________________________________________________________________________ -->
+  <!-- Below: all the nodes being loaded -->
   <node name="jackal_nominal_control"
     pkg="refinecbf_ros"
     type="tb_nominal_controller.py"
@@ -67,6 +98,16 @@
     <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
   </node>
 
+  <node name="obstacle_node"
+    pkg="refinecbf_ros"
+    type="obstacle_node.py"
+    output="screen">
+    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+    <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
+    <param name="services/activate_obstacle" value="$(arg activate_obstacle_service)" />
+    <param name="vf_update_method" value="$(arg vf_update_method)" />
+  </node>
+
   <node name="jackal_visualization"
     pkg="refinecbf_ros"
     type="jackal_visualization.py"
@@ -77,6 +118,7 @@
     <param name="topics/obstacle_marker" value="$(arg obstacle_marker_topic)" />
     <param name="topics/sdf_marker" value="$(arg sdf_marker_topic)" />
     <param name="topics/vf_marker" value="$(arg vf_marker_topic)" />
+    <param name="vf_update_method" value="$(arg vf_update_method)" />
   </node>
 
   <include file="$(find refinecbf_ros)/launch/refine_cbf.launch">
@@ -88,6 +130,11 @@
     <arg name="obstacle_update_topic" value="$(arg obstacle_update_topic)" />
     <arg name="disturbance_update_topic" value="$(arg disturbance_update_topic)" />
     <arg name="safety_filter_active" value="$(arg safety_filter_active)" />
+    <arg name="vf_initialization_method" value="$(arg vf_initialization_method)"/>
+    <arg name="update_vf_online" value="$(arg update_vf_online)" />
+    <arg name="CBF_parameter_file" value="$(arg CBF_parameter_file)" />
+    <arg name="initial_vf_file" value="$(arg initial_vf_file)" />
+    <arg name="vf_update_method" value="$(arg vf_update_method)" />
   </include>
 
   <group>
