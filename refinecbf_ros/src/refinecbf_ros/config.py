@@ -1,13 +1,16 @@
 import hj_reachability as hj
 import jax.numpy as jnp
 import jax
-from cbf_opt import ControlAffineDynamics, ControlAffineCBF, ControlAffineASIF, SlackifiedControlAffineASIF, BatchedDynamics
+from cbf_opt import (
+    ControlAffineDynamics,
+    ControlAffineCBF,
+    ControlAffineASIF,
+    SlackifiedControlAffineASIF,
+    BatchedDynamics,
+)
 from refine_cbfs import HJControlAffineDynamics, TabularControlAffineCBF, TabularTVControlAffineCBF, utils
 import numpy as np
 import rospy
-# import sys
-# sys.path.append('/home/sosuke/refineCBF/refine_cbfs')
-
 
 
 class Config:
@@ -70,7 +73,7 @@ class Config:
         detection_obstacles = []  # Obstacles that are "detected" by the robot when in close enough range
         service_obstacles = []  # Obstalces that are activated by a service
         update_obstacles = []  # Obstacles that become activated after a specified amount of time
-        active_obstacles = [] # Obstacles that are always active
+        active_obstacles = []  # Obstacles that are always active
         for obstacle in self.obstacle_list.values():
             if obstacle["mode"] == "Detection":
                 if obstacle["type"] == "Circle":
@@ -216,7 +219,9 @@ class Circle(Obstacle):
 
     def obstacle_sdf(self, x):
         obstacle_sdf = (
-            jnp.linalg.norm(jnp.array([self.center - jnp.reshape(x[..., self.stateIndices],(-1,1))])) - self.radius - self.padding
+            jnp.linalg.norm(jnp.array([self.center - jnp.reshape(x[..., self.stateIndices], (-1, 1))]))
+            - self.radius
+            - self.padding
         )
         return obstacle_sdf
 
@@ -236,7 +241,13 @@ class Rectangle(Obstacle):
 
     def obstacle_sdf(self, x):
         max_dist_per_dim = jnp.max(
-            jnp.array([self.minVal - jnp.reshape(x[..., self.stateIndices],(-1,1)), jnp.reshape(x[..., self.stateIndices],(-1,1)) - self.maxVal]), axis=0
+            jnp.array(
+                [
+                    self.minVal - jnp.reshape(x[..., self.stateIndices], (-1, 1)),
+                    jnp.reshape(x[..., self.stateIndices], (-1, 1)) - self.maxVal,
+                ]
+            ),
+            axis=0,
         )
 
         def outside_obstacle(_):
@@ -267,7 +278,13 @@ class Boundary(Obstacle):
 
     def boundary_sdf(self, x):
         max_dist_per_dim = jnp.max(
-            jnp.array([self.minVal - jnp.reshape(x[..., self.stateIndices],(-1,1)), jnp.reshape(x[..., self.stateIndices],(-1,1)) - self.maxVal]), axis=0
+            jnp.array(
+                [
+                    self.minVal - jnp.reshape(x[..., self.stateIndices], (-1, 1)),
+                    jnp.reshape(x[..., self.stateIndices], (-1, 1)) - self.maxVal,
+                ]
+            ),
+            axis=0,
         )
 
         def outside_boundary(_):
@@ -317,40 +334,40 @@ class DubinsCarDynamics(ControlAffineDynamics):
     #     return jnp.array([[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]])
 
 
-#Defining the dynamics of the quadrotor
+# Defining the dynamics of the quadrotor
 class CrazyflieDynamics(ControlAffineDynamics):
     """
     Simplified dynamics, and we need to convert controls from phi to tan(phi)"""
+
     STATES = ["y", "z", "v_y", "v_z"]
     CONTROLS = ["tan(phi)", "T"]
     DISTURBANCES = []
+
     def __init__(self, params, test=True, **kwargs):
         super().__init__(params, test, **kwargs)
-    
+
     def open_loop_dynamics(self, state, time: float = 0.0):
-        return jnp.array([state[2], state[3], 0.0, -self.params['g']])
+        return jnp.array([state[2], state[3], 0.0, -self.params["g"]])
 
     def control_matrix(self, state, time: float = 0.0):
-        return jnp.array([[0.0, 0.0], [0.0, 0.0], [self.params['g'], 0.0], [0.0, 1.0]])
-    
-    def state_jacobian(self, state, control, disturbance = None, time: float = 0.0):
-        return jax.jacfwd(lambda x: self.__call__(x, control, disturbance, time))(state)
-    
+        return jnp.array([[0.0, 0.0], [0.0, 0.0], [self.params["g"], 0.0], [0.0, 1.0]])
 
-#Implementing creating CBF 
-class CrazyflieCBF(ControlAffineCBF):
+    def state_jacobian(self, state, control, disturbance=None, time: float = 0.0):
+        return jax.jacfwd(lambda x: self.__call__(x, control, disturbance, time))(state)
+
+
+# Implementing creating CBF
+class QuadraticCBF(ControlAffineCBF):
     def __init__(self, dynamics, params, test=False, **kwargs):
-        self.scaling = params["scaling"] 
+        self.scaling = params["scaling"]
         self.center = params["center"]
         self.offset = params["offset"]
         self._vf_grad = jax.vmap(jax.grad(self.vf, argnums=0), in_axes=(0, None))
         super().__init__(dynamics, params, test=False, **kwargs)
-    
+
     def vf(self, state, time=0.0):
-        val = (self.offset - jnp.sum(self.scaling * (state - self.center) ** 2, axis=-1))
+        val = self.offset - jnp.sum(np.array(self.scaling) * (state - np.array(self.center)) ** 2, axis=-1)
         return val
-        # return jnp.where(val > 0, val, 0.1 * val)
-    
+
     def _grad_vf(self, state, time=0.0):
         return self._vf_grad(state, time)
-    

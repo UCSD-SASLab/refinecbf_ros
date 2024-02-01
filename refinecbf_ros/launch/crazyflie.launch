@@ -1,8 +1,34 @@
 <?xml version="1.0"?>
 
 <launch>
-  <!-- Topics -->
+  <!-- Topics that need to be chosen by user and can be varied-->
+    <!-- Whether we want to use nominal / external control or a safety filter -->
   <arg name="safety_filter_active" default="True" />
+    <!-- Whether we want a single fixed value function (no updating) or updating using hj_reachability_node -->
+  <arg name="update_vf_online" default="True" /> 
+    <!-- What type of initial value function do we have
+         This only is relevant if the safety_filter_active = True
+         Options: 
+          1. cbf:   Load as CBF with parameters set in CBF yaml file
+          2. file:  Load as state_discretized value function 
+          3. sdf:   Have the signed distance function be used -->
+  <arg name="vf_initialization_method" default="cbf" />
+    <!-- Simulation or hardware -->
+  <arg name="hardware" default="false" />
+
+  <!-- Choose which files to load to describe the environment -->
+  <arg name="env_config_file" default="simple_refinecbf_env.yaml" />
+  
+  <!-- Choose which files to load to describe the refinecbf internal nominal controller -->
+  <arg name="control_config_file" default="crazyflie_control.yaml" />
+
+  <!-- Choose the name of CBF parameter file or initial vf file -->
+  <arg name="CBF_parameter_file" default="crazyflie_CBF_params.yaml" />
+  <arg name="initial_vf_file" default="crazyflie_vf.npy" />
+
+
+  <!-- DO NOT MODIFY ANY PARAMETERS BELOW THIS (THESE SHOULD BE FIXED) -->
+  <!-- Topics that are kind of fixed in place and that we do not want to modify (TODO: Sander modify to value ipo default) -->
   <arg name="robot_state_topic" default="/state" />
   <arg name="cbf_state_topic" default="/safety_filter/state" />
 
@@ -30,26 +56,22 @@
   <!-- Figure out what to do with all of these -->
   <arg name="control_mode" default="MERGE" />
 
+  <!-- Loading and storing the environment and nominal control parameters -->
+  <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg env_config_file)" />
+  <rosparam ns="env" file="$(arg config_file_loc)" command="load" />
+  <arg name="control_config_file_loc"
+    value="$(find refinecbf_ros)/config/$(arg control_config_file)" />
+  <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
+  
   <!-- Global parameters arguments -->
   <arg name="dynamics_type" default="quad_near_hover" />
   <arg name="grid_type" default="fine" />
   <!-- Parameters -->
-  <param name="init_vf_file" value="$(find refinecbf_ros)/data/init_vf.npy" />
-  <param name="obstacle_file" value="$(find refinecbf_ros)/data/obstacle.npy" />
   <param name="dynamics_type" value="$(arg dynamics_type)" />
   <param name="grid_type" value="$(arg grid_type)" />
   
-  <!-- <arg name="config_file" default="crazyflie_env.yaml" /> -->
-  <arg name="config_file" default="simple_refinecbf_env.yaml" />
-  <arg name="control_config_file" default="crazyflie_control.yaml" />
-
-  <arg name="config_file_loc" value="$(find refinecbf_ros)/config/$(arg config_file)" />
-  <arg name="control_config_file_loc"
-    value="$(find refinecbf_ros)/config/$(arg control_config_file)" />
-
-  <rosparam ns="env" file="$(arg config_file_loc)" command="load" />
-  <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
-  
+  <!-- ############################################## -->
+  <!-- Below: all the nodes being loaded -->
   <node name="cf_nominal_control"
         pkg="refinecbf_ros"
         type="cf_nominal_controller.py"
@@ -104,11 +126,15 @@
     <arg name="actuation_update_topic" value="$(arg actuation_update_topic)" />
     <arg name="obstacle_update_topic" value="$(arg obstacle_update_topic)" />
     <arg name="disturbance_update_topic" value="$(arg disturbance_update_topic)" />
+    <arg name="vf_initialization_method" value="$(arg vf_initialization_method)"/>
+    <arg name="update_vf_online" value="$(arg update_vf_online)" />
+    <arg name="CBF_parameter_file" value="$(arg CBF_parameter_file)" />
+    <arg name="initial_vf_file" value="$(arg initial_vf_file)" />
   </include>
 
   <!-- Arguments for child launch files -->
   <!-- Topics. -->
-  <arg name="hardware" default="false" />
+
   <arg name="control_reference_topic" default="/control/ref" />
   <arg name="takeoff_control_topic" default="/control/takeoff" />
   <arg name="lqr_control_topic" default="/control/lqr" />
