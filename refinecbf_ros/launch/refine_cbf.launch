@@ -9,6 +9,12 @@
     <arg name="disturbance_update_topic" />
     <arg name="obstacle_update_topic" />
     <arg name="safety_filter_active" />
+    <arg name="update_vf_online" />
+    <arg name="vf_initialization_method" />
+    <arg name="CBF_parameter_file" />
+    <arg name="initial_vf_file" />
+    
+
     <node name="refine_cbf"
         pkg="refinecbf_ros"
         type="refine_cbf_node.py"
@@ -21,6 +27,10 @@
         <param name="topics/vf_update" value="$(arg vf_update_topic)" />
         <param name="safety_filter_active" value="$(arg safety_filter_active)" />
     </node>
+    <arg name="CBF_parameter_file_loc" value="$(find refinecbf_ros)/config/$(arg CBF_parameter_file)" />
+    <rosparam ns="cbf" file="$(arg CBF_parameter_file_loc)" command="load" />
+    <param name="vf_file" value="$(find refinecbf_ros)/config/$(arg initial_vf_file)" />
+
     <group if="$(eval arg('safety_filter_active') == 1)">
         <node name="hj_reachability"
             pkg="refinecbf_ros"
@@ -31,6 +41,8 @@
             <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
             <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
             <param name="topics/vf_update" value="$(arg vf_update_topic)" />
+            <param name="update_vf_online" value="$(arg update_vf_online)" />
+            <param name="vf_initialization_method" value="$(arg vf_initialization_method)" />
         </node>
     </group>
 

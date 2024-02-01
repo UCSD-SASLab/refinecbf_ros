@@ -2,25 +2,28 @@
 
 import rospy
 import numpy as np
+import jax.numpy as jnp
 from refinecbf_ros.msg import ValueFunctionMsg, Array, HiLoArray
 from cbf_opt import ControlAffineASIF
 from refine_cbfs import TabularControlAffineCBF
 from refinecbf_ros.config import Config
+from cbf_opt import ControlAffineASIF, SlackifiedControlAffineASIF
 
 
 class SafetyFilterNode:
     """
-    Balances safety filter and
+    Docstring missing
     """
+
     def __init__(self):
         self.safety_filter_active = rospy.get_param("~safety_filter_active", True)
         vf_topic = rospy.get_param("~topics/vf_update", "/vf_update")
         self.vf_sub = rospy.Subscriber(vf_topic, ValueFunctionMsg, self.callback_vf_update)
         self.state_topic = rospy.get_param("~topics/state", "/state_array")
         self.state_sub = rospy.Subscriber(self.state_topic, Array, self.callback_state)
-        
+
         config = Config(hj_setup=True)
-        self.dynamics = config.dynamics 
+        self.dynamics = config.dynamics
         self.grid = config.grid
 
         self.cbf = TabularControlAffineCBF(self.dynamics, grid=self.grid)
@@ -35,19 +38,18 @@ class SafetyFilterNode:
         self.pub_filtered_control = rospy.Publisher(filtered_control_topic, Array, queue_size=1)
 
         actuation_update_topic = rospy.get_param("~topics/actuation_update", "/env/actuation_update")
-        self.actuation_update_sub = rospy.Subscriber(actuation_update_topic, HiLoArray, 
-                                                     self.callback_actuation_update)
+        self.actuation_update_sub = rospy.Subscriber(actuation_update_topic, HiLoArray, self.callback_actuation_update)
 
         if self.safety_filter_active:
             # This has to be done to ensure real-time performance
             self.initialized_safety_filter = False
             self.safety_filter_solver.setup_optimization_problem()
+            rospy.loginfo("safety filter is active!")
 
         else:
             self.initialized_safety_filter = True
             self.safety_filter_solver = lambda state, nominal_control: nominal_control
             rospy.logwarn("No safety filter, be careful!")
-
 
     def callback_actuation_update(self, msg):
         self.safety_filter_solver.umin = np.array(msg.lo)
@@ -65,14 +67,18 @@ class SafetyFilterNode:
         if self.state is None:
             rospy.loginfo(" State not set yet, no control published")
             return
-        if not self.initialized_safety_filter:
+        if not self.initialized_safety_filter:  # if initialzied_safety_filter=False, goes here which we don't want
             safety_control_msg = control_msg
+            # rospy.logwarn("Safety filter not initialized yet, outputting nominal control")
         else:
             safety_control_msg = Array()
+            vf = np.array(
+                self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)
+            ).item()  # used to be commented and placed below safet_control =self.
+            rospy.loginfo("value at current state:{}".format(vf))  # Used to be commented
             safety_control = self.safety_filter_solver(self.state.copy(), nominal_control=nom_control)
-            # vf = np.array(self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)).item()
-            # rospy.loginfo("value at current state:{}".format(vf))
             safety_control_msg.value = safety_control[0].tolist()  # Ensures compatibility
+
         self.pub_filtered_control.publish(safety_control_msg)
 
     def callback_state(self, state_est_msg):
