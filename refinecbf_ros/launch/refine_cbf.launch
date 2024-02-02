@@ -28,9 +28,14 @@
         <param name="safety_filter_active" value="$(arg safety_filter_active)" />
         <param name="vf_update_method" value="$(arg vf_update_method)" />
     </node>
-    <arg name="CBF_parameter_file_loc" value="$(find refinecbf_ros)/config/$(arg CBF_parameter_file)" />
-    <rosparam ns="cbf" file="$(arg CBF_parameter_file_loc)" command="load" />
-    <param name="vf_file" value="$(find refinecbf_ros)/config/$(arg initial_vf_file)" />
+    <group if="$(eval arg('vf_initialization_method') == 'cbf')">
+        <arg name="CBF_parameter_file_loc" value="$(find refinecbf_ros)/config/$(arg CBF_parameter_file)" />
+        <rosparam ns="cbf" file="$(arg CBF_parameter_file_loc)" command="load" />
+    </group>
+
+    <group if="$(eval arg('vf_initialization_method') == 'file')">
+        <param name="vf_file" value="$(find refinecbf_ros)/config/$(arg initial_vf_file)" />
+    </group>
 
     <group if="$(eval arg('safety_filter_active') == 1)">
         <node name="hj_reachability"
