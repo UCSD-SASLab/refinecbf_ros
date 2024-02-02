@@ -35,8 +35,8 @@ class CrazyflieVisualization(Visualization):
             marker.color.b = 0.0
             marker.color.a = 0.75
 
-            marker.pose.position.y = obstacle['center'][0]
-            marker.pose.position.z = obstacle['center'][1]
+            marker.pose.position.y = obstacle['center'][1]
+            marker.pose.position.z = obstacle['center'][0]
             marker.pose.position.x = 0.0
 
             marker.pose.orientation.x = 0.0
@@ -51,8 +51,8 @@ class CrazyflieVisualization(Visualization):
             marker.action = Marker.ADD
 
             # Set obstacle parameters
-            marker.scale.x = obstacle['maxVal'][0]-obstacle['minVal'][0]
-            marker.scale.y = obstacle['maxVal'][1]-obstacle['minVal'][1]
+            marker.scale.x = obstacle['maxVal'][1]-obstacle['minVal'][1]
+            marker.scale.y = obstacle['maxVal'][0]-obstacle['minVal'][0]
             marker.scale.z = 0.5
 
             marker.color = ColorRGBA()
