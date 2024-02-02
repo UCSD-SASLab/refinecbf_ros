@@ -32,8 +32,9 @@ class SafetyFilterNode:
         config = Config(hj_setup=True)
         self.dynamics = config.dynamics
         self.grid = config.grid
-
-        self.cbf = TabularControlAffineCBF(self.dynamics, grid=self.grid)
+        gamma = rospy.get_param("/ctr/cbf/gamma", 1.0)
+        alpha = lambda x: gamma * x
+        self.cbf = TabularControlAffineCBF(self.dynamics, grid=self.grid, alpha=alpha)
         self.safety_filter_solver = ControlAffineASIF(self.dynamics, self.cbf)
         self.safety_filter_solver.umin = np.array(config.control_space["lo"])
         self.safety_filter_solver.umax = np.array(config.control_space["hi"])
