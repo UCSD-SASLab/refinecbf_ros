@@ -12,3 +12,5 @@ nominal:
     time_intervals: 101
     solver_accuracy: "high"
   frequency: 20.0
+cbf:
+  gamma: 0.2
