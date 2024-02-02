@@ -23,7 +23,6 @@ class Config:
         self.grid = self.setup_grid()
 
         if hj_setup:
-            self.safe_set = rospy.get_param("~/env/safe_set")
             self.obstacle_list = rospy.get_param("~/env/obstacles")
             self.boundary_env = rospy.get_param("~/env/boundary")
             (
@@ -58,8 +57,6 @@ class Config:
         assert self.dynamics.periodic_dims == np.where(self.grid._is_periodic_dim)[0].tolist()
 
         if hj_setup:
-            assert len(self.safe_set["lo"]) == self.grid.ndim
-            assert len(self.safe_set["hi"]) == self.grid.ndim
             if len(self.obstacle_list) != 0:
                 for obstacle in self.obstacle_list.values():
                     if obstacle["type"] == "Circle":
