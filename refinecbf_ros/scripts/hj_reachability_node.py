@@ -191,25 +191,26 @@ class HJReachabilityNode:
         """
         Continuously updates the value function and publishes it as long as the node is running and the update flag is set.
         """
-        while self.update_vf_flag and not rospy.is_shutdown():
-            with self.vf_lock:
-                new_values = hj.step(
-                    self.solver_settings,
-                    self.hj_dynamics,
-                    self.grid,
-                    0.0,
-                    self.vf.copy(),
-                    -0.1,
-                    progress_bar=False,
-                )
-                self.vf = new_values
+        while not rospy.is_shutdown():
+            if self.update_vf_flag:
+                with self.vf_lock:
+                    new_values = hj.step(
+                        self.solver_settings,
+                        self.hj_dynamics,
+                        self.grid,
+                        0.0,
+                        self.vf.copy(),
+                        -0.1,
+                        progress_bar=False,
+                    )
+                    self.vf = new_values
 
-                rospy.loginfo("New vf calculated")
-                if self.vf_update_method == "pubsub":
-                    self.vf_pub.publish(ValueFunctionMsg(np.array(self.vf).flatten()))
-                else:  # self.vf_update_method == "file"
-                    np.save("./vf.npy", self.vf)
-                    self.vf_pub.publish(Bool(True))
+                    rospy.loginfo("New vf calculated")
+            if self.vf_update_method == "pubsub":
+                self.vf_pub.publish(ValueFunctionMsg(np.array(self.vf).flatten()))
+            else:  # self.vf_update_method == "file"
+                np.save("./vf.npy", self.vf)
+                self.vf_pub.publish(Bool(True))
             rospy.sleep(0.05)  # To make sure that subscribers can run
 
 

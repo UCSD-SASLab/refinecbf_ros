@@ -51,7 +51,7 @@ class SafetyFilterNode:
             # This has to be done to ensure real-time performance
             self.initialized_safety_filter = False
             self.safety_filter_solver.setup_optimization_problem()
-            rospy.loginfo("safety filter is active!")
+            rospy.loginfo("safety filter is used, but not initialized yet")
 
         else:
             self.initialized_safety_filter = True
@@ -65,15 +65,13 @@ class SafetyFilterNode:
     def callback_vf_update_file(self, vf_msg):
         if not vf_msg.data:
             return
-        self.cbf.vf_table = np.array(np.load('./vf.npy')).reshape(self.grid.shape)
-        print("Updated vf")
+        self.cbf.vf_table = np.array(np.load("./vf.npy")).reshape(self.grid.shape)
         if not self.initialized_safety_filter:
             rospy.loginfo("Initialized safety filter")
             self.initialized_safety_filter = True
 
     def callback_vf_update_pubsub(self, vf_msg):
         self.cbf.vf_table = np.array(vf_msg.vf).reshape(self.grid.shape)
-        print("Updated vf")
         if not self.initialized_safety_filter:
             rospy.loginfo("Initialized safety filter")
             self.initialized_safety_filter = True
@@ -83,15 +81,13 @@ class SafetyFilterNode:
         if self.state is None:
             rospy.loginfo(" State not set yet, no control published")
             return
-        if not self.initialized_safety_filter:  # if initialzied_safety_filter=False, goes here which we don't want
+        if not self.initialized_safety_filter:
             safety_control_msg = control_msg
-            # rospy.logwarn("Safety filter not initialized yet, outputting nominal control")
+            rospy.logwarn_throttle_identical(5.0, "Safety filter not initialized yet, outputting nominal control")
         else:
             safety_control_msg = Array()
-            vf = np.array(
-                self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)
-            ).item()  # used to be commented and placed below safet_control =self.
-            rospy.loginfo("value at current state:{}".format(vf))  # Used to be commented
+            vf = np.array(self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)).item()
+            rospy.loginfo_throttle_identical(1.0, "value at current state:{:.2f}".format(vf))  # TODO: Comment once visualized
             safety_control = self.safety_filter_solver(self.state.copy(), nominal_control=nom_control)
             safety_control_msg.value = safety_control[0].tolist()  # Ensures compatibility
 
