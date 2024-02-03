@@ -7,7 +7,7 @@
     <arg name="vf_update_topic" />
     <arg name="actuation_update_topic" />
     <arg name="disturbance_update_topic" />
-    <arg name="obstacle_update_topic" />
+    <arg name="sdf_update_topic" />
     <arg name="safety_filter_active" />
     <arg name="update_vf_online" />
     <arg name="vf_initialization_method" />
@@ -45,7 +45,7 @@
             ns="safety_filter">
             <param name="topics/disturbance_update" value="$(arg disturbance_update_topic)" />
             <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
-            <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+            <param name="topics/sdf_update" value="$(arg sdf_update_topic)" />
             <param name="topics/vf_update" value="$(arg vf_update_topic)" />
             <param name="update_vf_online" value="$(arg update_vf_online)" />
             <param name="vf_initialization_method" value="$(arg vf_initialization_method)" />

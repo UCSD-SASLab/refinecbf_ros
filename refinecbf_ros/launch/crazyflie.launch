@@ -48,7 +48,7 @@
 
   <arg name="disturbance_update_topic" value="/env/disturbance_update" />
   <arg name="actuation_update_topic" value="/env/actuation_update" />
-  <arg name="obstacle_update_topic" value="/env/obstacle_update" />
+  <arg name="sdf_update_topic" value="/env/sdf_update" />
   <arg name="vf_update_topic" value="/safety_filter/vf_update" />
 
   <arg name="robot_safe_control_topic" value="/robot/final_control" />
@@ -58,6 +58,8 @@
   <arg name="obstacle_marker_topic" value="/visualization/obstacle_marker" />
   <arg name="sdf_marker_topic" value="/visualization/sdf_marker" />
   <arg name="vf_marker_topic" value="/visualization/vf_marker" />
+  <arg name="goal_marker_topic" value ="/visualization/goal" />
+  <arg name="obstacle_update_topic" value ="/visualization/obstacle_update"
 
   <!-- Services -->
   <arg name="activate_obstacle_service" value="/env/activate_obstacle" />
@@ -105,8 +107,9 @@
     pkg="refinecbf_ros"
     type="obstacle_node.py"
     output="screen">
-    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+    <param name="topics/sdf_update" value="$(arg sdf_update_topic)" />
     <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
+    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
     <param name="services/activate_obstacle" value="$(arg activate_obstacle_service)" />
     <param name="vf_update_method" value="$(arg vf_update_method)" />
   </node>
@@ -115,12 +118,14 @@
     pkg="refinecbf_ros"
     type="cf_visualization.py"
     output="screen">
-    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
+    <param name="topics/sdf_update" value="$(arg sdf_update_topic)" />
     <param name="topics/cbf_state" value="$(arg cbf_state_topic)" />
     <param name="topics/vf_update" value="$(arg vf_update_topic)" />
+    <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
     <param name="topics/obstacle_marker" value="$(arg obstacle_marker_topic)" />
     <param name="topics/sdf_marker" value="$(arg sdf_marker_topic)" />
     <param name="topics/vf_marker" value="$(arg vf_marker_topic)" />
+    <param name="topics/goal_marker" value="$(arg goal_marker_topic)" />
     <param name="vf_update_method" value="$(arg vf_update_method)" />
   </node>
 
@@ -130,7 +135,7 @@
     <arg name="cbf_safe_control_topic" value="$(arg cbf_safe_control_topic)" />
     <arg name="vf_update_topic" value="$(arg vf_update_topic)" />
     <arg name="actuation_update_topic" value="$(arg actuation_update_topic)" />
-    <arg name="obstacle_update_topic" value="$(arg obstacle_update_topic)" />
+    <arg name="sdf_update_topic" value="$(arg sdf_update_topic)" />
     <arg name="disturbance_update_topic" value="$(arg disturbance_update_topic)" />
     <arg name="safety_filter_active" value="$(arg safety_filter_active)" />
     <arg name="vf_initialization_method" value="$(arg vf_initialization_method)"/>
