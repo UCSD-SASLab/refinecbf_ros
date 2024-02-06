@@ -1,15 +1,4 @@
 dynamics_class: "quad_near_hover"
-safe_set:
-  lo: 
-    - -6.0
-    - 0.0
-    - -4.0
-    - -4.0
-  hi: 
-    - 6.0
-    - 4.0
-    - 4.0
-    - 4.0
 
 obstacles: 
 

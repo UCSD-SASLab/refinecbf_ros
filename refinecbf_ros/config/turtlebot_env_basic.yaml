@@ -1,0 +1,46 @@
+dynamics_class: "dubins_car"
+
+obstacles: []
+
+boundary:
+  padding: 0
+  indices:
+    - 0
+    - 1
+  minVal:
+    - -1.0
+    - -1.0
+  maxVal:
+    - 1.0
+    - 1.0
+
+obstacle_update_rate_hz: 5
+
+state_domain:
+  lo: 
+    - -1.5
+    - -1.5
+    - -3.1416
+  hi: 
+    - 1.5
+    - 1.5
+    - 3.1416
+  resolution:
+    - 41
+    - 41
+    - 41
+  periodic_dims: [2]
+
+control_space:
+  n_dims: 2
+  lo:
+    - -0.2
+    - 0.1
+  hi: 
+    - 0.2
+    - 0.2
+
+disturbance_space:
+  n_dims: 0
+  lo: None
+  hi: None
