@@ -5,7 +5,7 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 import hj_reachability as hj
-from refinecbf_ros.msg import Array, ValueFunctionMsg
+from refinecbf_ros.msg import Array, ValueFunctionMsg, Obstacles
 from refinecbf_ros.config import Config
 from refinecbf_ros.srv import ActivateObstacle, ActivateObstacleResponse
 from std_msgs.msg import Bool
@@ -28,18 +28,22 @@ class ObstacleNode:
         self.service_obstacles = config.service_obstacles
         self.active_obstacles = config.active_obstacles
         self.update_obstacles = config.update_obstacles
+        self.active_obstacle_names = config.active_obstacle_names
         self.boundary = config.boundary
 
         # Publishers:
         self.vf_update_method = rospy.get_param("~vf_update_method")
 
-        obstacle_update_topic = rospy.get_param("~topics/obstacle_update", "/env/obstacle_update")
+        sdf_update_topic = rospy.get_param("~topics/sdf_update", "/env/sdf_update")
         if self.vf_update_method == "pubsub":
-            self.obstacle_update_pub = rospy.Publisher(obstacle_update_topic, ValueFunctionMsg, queue_size=1)
+            self.sdf_update_pub = rospy.Publisher(sdf_update_topic, ValueFunctionMsg, queue_size=1)
         elif self.vf_update_method == "file":
-            self.obstacle_update_pub = rospy.Publisher(obstacle_update_topic, Bool, queue_size=1)
+            self.sdf_update_pub = rospy.Publisher(sdf_update_topic, Bool, queue_size=1)
         else:
             raise NotImplementedError("{} is not a valid vf update method".format(self.vf_update_method))
+        
+        obstacle_update_topic = rospy.get_param("~topics/obstacle_update")
+        self.obstacle_update_pub = rospy.Publisher(obstacle_update_topic,Obstacles,queue_size=1)
 
         # Subscribers:
         cbf_state_topic = rospy.get_param("~topics/cbf_state")
@@ -64,23 +68,29 @@ class ObstacleNode:
             if obstacle not in self.active_obstacles:
                 if obstacle.distance_to_obstacle(self.robot_state) <= obstacle.detectionRadius:
                     self.active_obstacles.append(obstacle)
+                    self.active_obstacle_names.append(obstacle.obstacleName)
                     updatesdf = True
         for obstacle in self.update_obstacles:
             if obstacle not in self.active_obstacles:
                 if obstacle.updateTime >= rospy.Time.now().to_sec() - self.startTime:
                     self.active_obstacles.append(obstacle)
+                    self.active_obstacle_names.append(obstacle.obstacleName)
                     updatesdf = True
 
         if updatesdf:
             self.update_sdf()
+            self.update_active_obstacles()
 
     def update_sdf(self):
         sdf = hj.utils.multivmap(self.build_sdf(), jnp.arange(self.grid.ndim))(self.grid.states)
         if self.vf_update_method == "pubsub":
-            self.obstacle_update_pub.publish(ValueFunctionMsg(sdf.flatten()))
+            self.sdf_update_pub.publish(ValueFunctionMsg(sdf.flatten()))
         else:  # self.vf_update_method == "file"
             np.save("./sdf.npy", sdf)
-            self.obstacle_update_pub.publish(Bool(True))
+            self.sdf_update_pub.publish(Bool(True))
+
+    def update_active_obstacles(self):
+        self.obstacle_update_pub.publish(Obstacles(self.active_obstacle_names))
 
     def callback_state(self, state_msg):
         self.robot_state = jnp.reshape(np.array(state_msg.value), (-1, 1))

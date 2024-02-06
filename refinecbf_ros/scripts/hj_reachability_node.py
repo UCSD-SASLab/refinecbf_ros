@@ -26,7 +26,7 @@ class HJReachabilityNode:
     Subscribers:
     - disturbance_update_sub (~topics/disturbance_update): Updates the disturbance.
     - actuation_update_sub (~topics/actuation_update): Updates the actuation.
-    - obstacle_update_sub (~topics/obstacle_update): Updates the obstacles.
+    - sdf_update_sub (~topics/sdf_update): Updates the obstacles.
 
     Publishers:
     - vf_pub (~topics/vf_update): Publishes the value function.
@@ -49,14 +49,14 @@ class HJReachabilityNode:
         # Initialize a lock for thread-safe value function updates
         self.vf_lock = Lock()
         # Get initial safe space and setup solver
-        obstacle_update_topic = rospy.get_param("~topics/obstacle_update")
+        sdf_update_topic = rospy.get_param("~topics/sdf_update")
 
         if self.vf_update_method == "pubsub":
-            self.sdf_values = np.array(rospy.wait_for_message(obstacle_update_topic, ValueFunctionMsg).vf).reshape(
+            self.sdf_values = np.array(rospy.wait_for_message(sdf_update_topic, ValueFunctionMsg).vf).reshape(
                 self.grid.shape
             )
         elif self.vf_update_method == "file":
-            sdf_received = rospy.wait_for_message(obstacle_update_topic, Bool).data
+            sdf_received = rospy.wait_for_message(sdf_update_topic, Bool).data
             self.sdf_values = np.array(np.load("./sdf.npy")).reshape(self.grid.shape)
         else:
             raise NotImplementedError("{} is not a valid vf update method".format(self.vf_update_method))
@@ -111,12 +111,12 @@ class HJReachabilityNode:
         self.actuation_update_sub = rospy.Subscriber(actuation_update_topic, HiLoArray, self.callback_actuation_update)
 
         if self.vf_update_method == "pubsub":
-            self.obstacle_update_sub = rospy.Subscriber(
-                obstacle_update_topic, ValueFunctionMsg, self.callback_obstacle_update_pubsub
+            self.sdf_update_sub = rospy.Subscriber(
+                sdf_update_topic, ValueFunctionMsg, self.callback_sdf_update_pubsub
             )
         else:  # self.vf_update_method == "file"
-            self.obstacle_update_sub = rospy.Subscriber(
-                obstacle_update_topic, Bool, self.callback_obstacle_update_file
+            self.sdf_update_sub = rospy.Subscriber(
+                sdf_update_topic, Bool, self.callback_sdf_update_file
             )
 
         # Start updating the value function
@@ -152,7 +152,7 @@ class HJReachabilityNode:
             self.control_space = hj.Sets.Box(lo=jnp.array(min_control), hi=jnp.array(max_control))
             self.update_dynamics()  # FIXME:Check whether this is required or happens automatically
 
-    def callback_obstacle_update_pubsub(self, msg):
+    def callback_sdf_update_pubsub(self, msg):
         """
         Callback for the obstacle update subscriber.
 
@@ -168,7 +168,7 @@ class HJReachabilityNode:
                 "medium", value_postprocessor=self.brt(self.sdf_values)
             )
 
-    def callback_obstacle_update_file(self, msg):
+    def callback_sdf_update_file(self, msg):
         with self.vf_lock:
             if not msg.data:
                 return
