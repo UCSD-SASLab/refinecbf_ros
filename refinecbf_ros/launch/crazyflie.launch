@@ -29,7 +29,7 @@
   <arg name="vf_update_method" default="pubsub" />
 
     <!-- Choose which files to load to describe the environment -->
-  <arg name="env_config_file" default="simple_refinecbf_env.yaml" />
+  <arg name="env_config_file" default="crazyflie_env.yaml" />
   
     <!-- Choose which files to load to describe the refinecbf internal nominal controller -->
   <arg name="control_config_file" default="crazyflie_control.yaml" />
@@ -59,7 +59,7 @@
   <arg name="sdf_marker_topic" value="/visualization/sdf_marker" />
   <arg name="vf_marker_topic" value="/visualization/vf_marker" />
   <arg name="goal_marker_topic" value ="/visualization/goal" />
-  <arg name="obstacle_update_topic" value ="/visualization/obstacle_update"
+  <arg name="obstacle_update_topic" value ="/visualization/obstacle_update" />
 
   <!-- Services -->
   <arg name="activate_obstacle_service" value="/env/activate_obstacle" />
