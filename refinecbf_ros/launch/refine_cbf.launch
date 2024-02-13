@@ -28,14 +28,16 @@
         <param name="safety_filter_active" value="$(arg safety_filter_active)" />
         <param name="vf_update_method" value="$(arg vf_update_method)" />
     </node>
+ 
   <!-- Services -->
-  <arg name="modify_environment_service" value="/env/modify_environment" />
+    <arg name="modify_environment_service" value="/env/modify_environment" />
 
  <!-- Modify Environment server node. -->
     <node name="modify_environment"
-        pkg="refinecbf_ros"
-        type="modify_environment.py"
-        output="screen">
+            pkg="refinecbf_ros"
+            type="modify_environment.py"
+            output="screen"
+            ns="env">
         <param name="topics/disturbance_update" value="$(arg disturbance_update_topic)" />
         <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
         <param name="services/modify_environment" value="$(arg modify_environment_service)" />

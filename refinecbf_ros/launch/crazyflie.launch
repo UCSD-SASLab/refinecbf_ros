@@ -19,7 +19,7 @@
   <arg name="vf_initialization_method" default="cbf" />
   
     <!-- Simulation or hardware -->
-  <arg name="hardware" default="false" />
+  <arg name="hardware" default="False" />
 
     <!-- What message passing method to use
           Options:
@@ -29,14 +29,14 @@
   <arg name="vf_update_method" default="pubsub" />
 
     <!-- Choose which files to load to describe the environment -->
-  <arg name="env_config_file" default="crazyflie_env.yaml" />
+  <arg name="env_config_file" default="crazyflie_env_judy.yaml" />
   
     <!-- Choose which files to load to describe the refinecbf internal nominal controller -->
   <arg name="control_config_file" default="crazyflie_control.yaml" />
 
     <!-- Choose the name of CBF parameter file or initial vf file -->
   <arg name="CBF_parameter_file" default="crazyflie_CBF_params.yaml" />
-  <arg name="initial_vf_file" default="target_values.npy" />
+  <arg name="initial_vf_file" default="target_values_judy.npy" />
 
   <!-- For HW experiment, what robot are we dealing with  -->
   <arg name="robot_number" default="1" />
