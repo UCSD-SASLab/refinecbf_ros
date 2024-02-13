@@ -374,7 +374,7 @@ class QuadraticCBF(ControlAffineCBF):
         self.center = params["center"]
         self.offset = params["offset"]
         self._vf_grad = jax.vmap(jax.grad(self.vf, argnums=0), in_axes=(0, None))
-        super().__init__(dynamics, params, test=False, **kwargs)
+        super().__init__(dynamics, params=params, test=False, **kwargs)
 
     def vf(self, state, time=0.0):
         val = self.offset - jnp.sum(np.array(self.scaling) * (state - np.array(self.center)) ** 2, axis=-1)

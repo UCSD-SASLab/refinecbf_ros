@@ -70,7 +70,7 @@ class HJReachabilityNode:
         elif self.vf_initialization_method == "cbf":
             cbf_params = rospy.get_param("/cbf")["Parameters"]
             original_cbf = QuadraticCBF(self.dynamics, cbf_params, test=False)
-            tabular_cbf = TabularControlAffineCBF(self.dynamics, {}, test=False, grid=self.grid)
+            tabular_cbf = TabularControlAffineCBF(self.dynamics, params={}, test=False, grid=self.grid)
             tabular_cbf.tabularize_cbf(original_cbf)
             self.vf = tabular_cbf.vf_table.copy()
         elif self.vf_initialization_method == "file":

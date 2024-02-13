@@ -1,13 +1,4 @@
 dynamics_class: "dubins_car"
-safe_set:
-  lo: 
-    - -5.0
-    - -5.0
-    - -3.1416
-  hi: 
-    - 5.0
-    - 5.0
-    - 3.1416
 
 obstacles: 
   

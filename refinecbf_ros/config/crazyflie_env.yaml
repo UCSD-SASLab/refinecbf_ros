@@ -92,10 +92,10 @@ state_domain:
     - 7.0
     - 7.0
   resolution:
-    - 41
-    - 41
-    - 41
-    - 41
+    - 31
+    - 31
+    - 25
+    - 25
   periodic_dims: []
   
 control_space:
