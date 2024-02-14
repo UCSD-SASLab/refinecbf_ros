@@ -137,7 +137,6 @@ class HJReachabilityNode:
             min_disturbance = msg.lo
             self.disturbance_space = hj.sets.Box(lo=jnp.array(min_disturbance), hi=jnp.array(max_disturbance))
             self.update_dynamics()  # FIXME:Check whether this is required or happens automatically
-            rospy.loginfo("Success!")
 
     def callback_actuation_update(self, msg):
         """

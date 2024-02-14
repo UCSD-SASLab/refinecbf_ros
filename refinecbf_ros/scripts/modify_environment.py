@@ -25,14 +25,10 @@ class ModifyEnvironmentServer:
         rospy.Service(modify_environment_service, ModifyEnvironment, self.handle_modified_environment)
 
     def update_disturbances(self):
-        msg = HiLoArray
-        msg.hi = list(np.atleast_1d(1.0))
-        msg.lo = list(np.atleast_1d(-1.0))
-        self.disturbance_update_pub.publish(msg)
-
-    def empty_loop(self):
-        rospy.Rate(1.0).sleep()
-
+        hi = np.array([4.0])  # TODO Judy to customize
+        lo = np.array([-4.0])  # TODO Judy to customize
+        # self.disturbance_update_pub.publish(Bool(True))
+        self.disturbance_update_pub.publish(HiLoArray(hi=hi, lo=lo))
     
     def handle_modified_environment(self, req):
         '''
@@ -54,7 +50,4 @@ class ModifyEnvironmentServer:
 if __name__ == "__main__":
     rospy.init_node("modify_environment_node")
     modify_environment_server = ModifyEnvironmentServer()
-    # rospy.spin()
-    while not rospy.is_shutdown():
-        modify_environment_server.empty_loop()
-        rospy.Rate(1.0).sleep()
+    rospy.spin()
