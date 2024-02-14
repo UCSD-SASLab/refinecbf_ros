@@ -20,6 +20,9 @@ class SafetyFilterNode:
         self.safety_filter_active = rospy.get_param("~safety_filter_active", True)
         vf_topic = rospy.get_param("~topics/vf_update")
         self.vf_update_method = rospy.get_param("~vf_update_method")
+        gamma = rospy.get_param("/ctr/cbf/gamma", 1.0)
+        slackify_safety_constraint = rospy.get_param("/ctr/cbf/slack", False)
+
         if self.vf_update_method == "pubsub":
             self.vf_sub = rospy.Subscriber(vf_topic, ValueFunctionMsg, self.callback_vf_update_pubsub)
         elif self.vf_update_method == "file":
@@ -32,12 +35,18 @@ class SafetyFilterNode:
         config = Config(hj_setup=True)
         self.dynamics = config.dynamics
         self.grid = config.grid
-        gamma = rospy.get_param("/ctr/cbf/gamma", 1.0)
         alpha = lambda x: gamma * x
         self.cbf = TabularControlAffineCBF(self.dynamics, grid=self.grid, alpha=alpha)
-        self.safety_filter_solver = ControlAffineASIF(self.dynamics, self.cbf)
+
+        if slackify_safety_constraint:
+            self.safety_filter_solver = SlackifiedControlAffineASIF(self.dynamics, self.cbf)
+        else:  # strict equality
+            self.safety_filter_solver = ControlAffineASIF(self.dynamics, self.cbf)
+
         self.safety_filter_solver.umin = np.array(config.control_space["lo"])
         self.safety_filter_solver.umax = np.array(config.control_space["hi"])
+        self.safety_filter_solver.dmin = np.array(config.disturbance_space["lo"])
+        self.safety_filter_solver.dmax = np.array(config.disturbance_space["hi"])
 
         nom_control_topic = rospy.get_param("~topics/nominal_control", "/control/nominal")
         self.nominal_control_sub = rospy.Subscriber(nom_control_topic, Array, self.callback_safety_filter)
@@ -47,6 +56,9 @@ class SafetyFilterNode:
 
         actuation_update_topic = rospy.get_param("~topics/actuation_update", "/env/actuation_update")
         self.actuation_update_sub = rospy.Subscriber(actuation_update_topic, HiLoArray, self.callback_actuation_update)
+
+        disturbance_update_topic = rospy.get_param("~topics/disturbance_update")
+        self.disturbance_update_sub = rospy.Subscriber(disturbance_update_topic, HiLoArray, self.callback_disturbance_update)
 
         if self.safety_filter_active:
             # This has to be done to ensure real-time performance
@@ -62,6 +74,10 @@ class SafetyFilterNode:
     def callback_actuation_update(self, msg):
         self.safety_filter_solver.umin = np.array(msg.lo)
         self.safety_filter_solver.umax = np.array(msg.hi)
+    
+    def callback_disturbance_update(self, msg):
+        self.safety_filter_solver.dmin = np.array(msg.lo)
+        self.safety_filter_solver.dmax = np.array(msg.hi)
 
     def callback_vf_update_file(self, vf_msg):
         if not vf_msg.data:

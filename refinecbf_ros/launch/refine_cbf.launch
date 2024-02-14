@@ -24,6 +24,7 @@
         <param name="topics/filtered_control" value="$(arg cbf_safe_control_topic)" />
         <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
         <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
+        <param name="topics/disturbance_update" value="$(arg disturbance_update_topic)" />
         <param name="topics/vf_update" value="$(arg vf_update_topic)" />
         <param name="safety_filter_active" value="$(arg safety_filter_active)" />
         <param name="vf_update_method" value="$(arg vf_update_method)" />
