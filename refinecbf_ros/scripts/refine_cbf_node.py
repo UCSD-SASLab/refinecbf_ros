@@ -87,8 +87,9 @@ class SafetyFilterNode:
             rospy.logwarn_throttle_identical(5.0, "Safety filter not initialized yet, outputting nominal control")
         else:
             safety_control_msg = Array()
-            vf = np.array(self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)).item()
-            rospy.loginfo_throttle_identical(1.0, "value at current state:{:.2f}".format(vf))  # TODO: Comment once visualized
+            if hasattr(self.safety_filter_solver, 'cbf'):
+                vf = np.array(self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)).item()
+                rospy.loginfo_throttle_identical(1.0, "value at current state:{:.2f}".format(vf))  # TODO: Comment once visualized
             safety_control = self.safety_filter_solver(self.state.copy(), nominal_control=nom_control)
             safety_control_msg.value = safety_control[0].tolist()  # Ensures compatibility
 
