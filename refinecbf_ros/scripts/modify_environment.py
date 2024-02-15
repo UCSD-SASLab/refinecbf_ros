@@ -13,10 +13,11 @@ class ModifyEnvironmentServer:
         # Load configuration
         config = Config(hj_setup=True)
 
-        # TODO Judy: Load the disturbances from yaml through config
+        self.disturbance_space = config.disturbance_space
 
-        # Set up publishers # TODO: Judy fix actuation_update_pub message type (see below)
-        self.actuation_update_pub = rospy.Publisher("/actuation_update", HiLoArray, queue_size=1)
+        actuation_update_topic = rospy.get_param("~topics/actuation_update")
+        self.actuation_update_pub = rospy.Publisher(actuation_update_topic, HiLoArray, queue_size=1)
+
         disturbance_update_topic = rospy.get_param("~topics/disturbance_update")
         self.disturbance_update_pub = rospy.Publisher(disturbance_update_topic, HiLoArray, queue_size=1)
 
@@ -25,15 +26,15 @@ class ModifyEnvironmentServer:
         rospy.Service(modify_environment_service, ModifyEnvironment, self.handle_modified_environment)
 
     def update_disturbances(self):
-        hi = np.array([4.0])  # TODO Judy to customize
-        lo = np.array([-4.0])  # TODO Judy to customize
+        hi = np.array(self.disturbance_space["hi"])
+        lo = np.array(self.disturbance_space["lo"])
         # self.disturbance_update_pub.publish(Bool(True))
         self.disturbance_update_pub.publish(HiLoArray(hi=hi, lo=lo))
     
     def handle_modified_environment(self, req):
         '''
         To add disturbances, paste the following in a terminal:
-          rosservice call /modify_environment "disturbance"
+          rosservice call /env/modify_environment "disturbance"
         '''
         modification_request = req.modification
         # if modification_request == "actuation":
