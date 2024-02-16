@@ -76,6 +76,8 @@ disturbance_space:
   hi: 
     - 0.0
 
+actuation_updates: []
+
 disturbance_updates:
   disturbance1:
     n_dims: 1
