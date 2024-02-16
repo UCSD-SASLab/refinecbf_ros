@@ -17,6 +17,7 @@ class SafetyFilterNode:
     """
 
     def __init__(self):
+        self.initialized_safety_filter = False  # To ensure initialized when callback is triggered
         self.safety_filter_active = rospy.get_param("~safety_filter_active", True)
         vf_topic = rospy.get_param("~topics/vf_update")
         self.vf_update_method = rospy.get_param("~vf_update_method")

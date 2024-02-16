@@ -31,12 +31,12 @@ class CrazyflieInterface(BaseInterface):
     disturbance_out_msg_type = DisturbanceStamped
 
     def __init__(self):
+        self.is_in_flight = False
         super().__init__()
 
         # In flight flag setup
         self.in_flight_flag_topic = rospy.get_param("in_flight_topic", "/control/in_flight")
         self.in_flight_flag_sub = rospy.Subscriber(self.in_flight_flag_topic, Empty, self.callback_in_flight)
-        self.is_in_flight = False
 
         # External setpoint setup
         self.external_setpoint_time_buffer = rospy.get_param("/ctr/external_setpoint_buffer", 1.0)  # seconds
