@@ -52,6 +52,7 @@
   <arg name="vf_update_topic" value="/safety_filter/vf_update" />
 
   <arg name="robot_safe_control_topic" value="/robot/final_control" />
+  <arg name="robot_disturbance_topic" value="/robot/disturbance" />
   <arg name="cbf_safe_control_topic" value="/safety_filter/safe_control" />
   <arg name="cbf_nominal_control_topic" value="/safety_filter/nominal_control" />
 
@@ -309,6 +310,7 @@
       <param name="frames/robot" value="$(arg robot_frame)" />
 
       <param name="topics/control" value="$(arg robot_safe_control_topic)" />
+      <param name="topics/disturbance" value="$(arg robot_disturbance_topic)" />
     </node>
 
   </group>
