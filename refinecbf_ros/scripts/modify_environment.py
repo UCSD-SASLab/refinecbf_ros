@@ -14,6 +14,10 @@ class ModifyEnvironmentServer:
         config = Config(hj_setup=True)
         self.disturbance_space = config.disturbance_space
         self.control_space = config.control_space
+        self.actuation_update_list = config.actuation_updates_list
+        self.actuation_idx = 0
+        self.disturbance_update_list = config.disturbance_updates_list
+        self.disturbance_idx = 0
 
         # Set up publishers
         actuation_update_topic = rospy.get_param("~topics/actuation_update")
@@ -28,16 +32,25 @@ class ModifyEnvironmentServer:
 
 
     def update_disturbances(self):
-        hi = np.array(self.disturbance_space["hi"])
-        lo = np.array(self.disturbance_space["lo"])
-        # self.disturbance_update_pub.publish(Bool(True))
-        self.disturbance_update_pub.publish(HiLoArray(hi=hi, lo=lo))
+        if self.disturbance_idx >= len(self.disturbance_update_list):
+            rospy.logwarn("No more disturbances to update, no update sent")
+        else:
+            key = list(self.disturbance_update_list.keys())[self.disturbance_idx]
+            disturbance_space = self.disturbance_update_list[key]
+            hi = np.array(disturbance_space["hi"])
+            lo = np.array(disturbance_space["lo"])
+            self.disturbance_idx += 1
+            self.disturbance_update_pub.publish(HiLoArray(hi=hi, lo=lo))
     
     def update_actuation(self):
-        hi = np.array(self.control_space["hi"])
-        lo = np.array(self.control_space["lo"])
-        # self.disturbance_update_pub.publish(Bool(True))
-        self.actuation_update_pub.publish(HiLoArray(hi=hi, lo=lo))
+        if self.actuation_idx >= len(self.actuation_update_list):
+            rospy.logwarn("No more actuations to update, no update sent")
+        else:
+            control_space = self.actuation_update_list[self.actuation_idx]
+            hi = np.array(control_space["hi"])
+            lo = np.array(control_space["lo"])
+            self.actuation_idx += 1
+            self.actuation_update_pub.publish(HiLoArray(hi=hi, lo=lo))
     
     def handle_modified_environment(self, req):
         '''
@@ -55,6 +68,8 @@ class ModifyEnvironmentServer:
         elif modification_request == "update_actuation":
             self.update_actuation()
             output = "Actuation Updated"
+        else:
+            output = "Invalid modification request"
         return ModifyEnvironmentResponse(output)
 
 

@@ -1,14 +1,8 @@
 import hj_reachability as hj
 import jax.numpy as jnp
 import jax
-from cbf_opt import (
-    ControlAffineDynamics,
-    ControlAffineCBF,
-    ControlAffineASIF,
-    SlackifiedControlAffineASIF,
-    BatchedDynamics,
-)
-from refine_cbfs import HJControlAffineDynamics, TabularControlAffineCBF, TabularTVControlAffineCBF, utils
+from cbf_opt import ControlAffineDynamics, ControlAffineCBF
+from refine_cbfs import HJControlAffineDynamics
 import numpy as np
 import rospy
 
@@ -17,14 +11,16 @@ class Config:
     def __init__(self, hj_setup=False):
         self.dynamics_class = rospy.get_param("~/env/dynamics_class")
         self.dynamics = self.setup_dynamics()
-        self.control_space = rospy.get_param(
-            "~/env/control_space")  # These need to be box spaces
+        self.control_space = rospy.get_param("~/env/control_space")
         self.disturbance_space = rospy.get_param("~/env/disturbance_space")
         self.state_domain = rospy.get_param("~/env/state_domain")
         self.grid = self.setup_grid()
 
         if hj_setup:
             self.obstacle_list = rospy.get_param("~/env/obstacles")
+            self.actuation_updates_list = rospy.get_param("~/env/actuation_updates")
+            self.disturbance_updates_list = rospy.get_param("~/env/disturbance_updates")
+
             self.boundary_env = rospy.get_param("~/env/boundary")
             (
                 self.detection_obstacles,

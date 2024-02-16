@@ -47,9 +47,6 @@ class DisturbanceNode:
             * (self.disturbance_hi - self.disturbance_lo)
             + self.disturbance_lo
         )
-        random_val = self.random_state.beta(self.beta_skew, self.beta_skew, size=self.disturbance_lo.shape) * (self.disturbance_hi - self.disturbance_lo)
-        rospy.loginfo("Random value: {}".format(random_val))
-        # rospy.loginfo("Disturbance: {}".format(disturbance))
         per_state_disturbance = self.dynamics.disturbance_matrix(self.state, 0.0) @ disturbance
         return per_state_disturbance
 
