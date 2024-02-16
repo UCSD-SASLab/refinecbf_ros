@@ -100,11 +100,15 @@ class BaseInterface:
     def callback_disturbance(self, disturbance_msg):
         disturbance_out_msg = self.process_disturbance(disturbance_msg)
         assert type(disturbance_out_msg) == self.disturbance_out_msg_type, "Override to process the disturbance message"
+        self.disturbance_pub.publish(disturbance_out_msg)
 
     def process_external_control(self, control_in_msg):
         raise NotImplementedError("Must be subclassed")
     
     def process_safe_control(self, control_in_msg):
+        raise NotImplementedError("Must be subclassed")
+    
+    def process_disturbance(self, disturbance_msg):
         raise NotImplementedError("Must be subclassed")
 
     def override_safe_control(self):

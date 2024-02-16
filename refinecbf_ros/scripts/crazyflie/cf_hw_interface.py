@@ -4,7 +4,12 @@ import rospy
 import numpy as np
 
 from std_msgs.msg import Empty
-from crazyflie_msgs.msg import PositionVelocityYawStateStamped, PrioritizedControlStamped, ControlStamped
+from crazyflie_msgs.msg import (
+    PositionVelocityYawStateStamped,
+    PrioritizedControlStamped,
+    ControlStamped,
+    DisturbanceStamped,
+)
 from refinecbf_ros.msg import Array
 import sys
 import os
@@ -23,10 +28,11 @@ class CrazyflieInterface(BaseInterface):
     state_msg_type = PositionVelocityYawStateStamped
     control_out_msg_type = ControlStamped  # FIXME: Set differently
     external_control_msg_type = ControlStamped
+    disturbance_out_msg_type = DisturbanceStamped
 
     def __init__(self):
         super().__init__()
-        
+
         # In flight flag setup
         self.in_flight_flag_topic = rospy.get_param("in_flight_topic", "/control/in_flight")
         self.in_flight_flag_sub = rospy.Subscriber(self.in_flight_flag_topic, Empty, self.callback_in_flight)
@@ -77,10 +83,20 @@ class CrazyflieInterface(BaseInterface):
         control_out_msg = Array()
         control_out_msg.value = [np.tan(control.roll), control.thrust]
         return control_out_msg
+    
+    def process_disturbance(self, disturbance_in_msg):
+        disturbance_in = disturbance_in_msg.value
+        disturbance_out_msg = self.disturbance_out_msg_type()
+        disturbance_out_msg.header.stamp = rospy.Time.now()
+        disturbance_out_msg.disturbance.y = disturbance_in[0]
+        disturbance_out_msg.disturbance.z = disturbance_in[1]
+        disturbance_out_msg.disturbance.y_dot = disturbance_in[2]
+        disturbance_out_msg.disturbance.z_dot = disturbance_in[3]
+        return disturbance_out_msg
 
     def override_safe_control(self):
         return not self.is_in_flight  # If idle / taking off / landing -> override
-    
+
     def callback_in_flight(self, msg):
         self.is_in_flight = not self.is_in_flight
 

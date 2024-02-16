@@ -52,9 +52,10 @@
   <arg name="vf_update_topic" value="/safety_filter/vf_update" />
 
   <arg name="robot_safe_control_topic" value="/robot/final_control" />
-  <arg name="robot_disturbance_topic" value="/robot/disturbance" />
   <arg name="cbf_safe_control_topic" value="/safety_filter/safe_control" />
   <arg name="cbf_nominal_control_topic" value="/safety_filter/nominal_control" />
+  <arg name="robot_disturbance_topic" value="/robot/disturbance" />
+  <arg name="simulated_disturbance_topic" value="/stack/disturbance" />
 
   <arg name="obstacle_marker_topic" value="/visualization/obstacle_marker" />
   <arg name="sdf_marker_topic" value="/visualization/sdf_marker" />
@@ -102,6 +103,8 @@
     <param name="topics/cbf_safe_control" value="$(arg cbf_safe_control_topic)" />
     <param name="topics/robot_external_control" value="$(arg robot_external_control_topic)" />
     <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
+    <param name="topics/simulated_disturbance" value="$(arg simulated_disturbance_topic)" />
+    <param name="topics/robot_disturbance" value="$(arg robot_disturbance_topic)" />
   </node>
 
   <node name="obstacle_node"
@@ -113,6 +116,15 @@
     <param name="topics/obstacle_update" value="$(arg obstacle_update_topic)" />
     <param name="services/activate_obstacle" value="$(arg activate_obstacle_service)" />
     <param name="vf_update_method" value="$(arg vf_update_method)" />
+  </node>
+
+  <node name="disturbance_node"
+    pkg="refinecbf_ros"
+    type="disturbance_node.py"
+    output="screen">
+    <param name="topics/disturbance_update" value="$(arg disturbance_update_topic)" />
+    <param name="topics/state" value="$(arg cbf_state_topic)" />
+    <param name="topics/disturbance" value="$(arg simulated_disturbance_topic)" />
   </node>
 
   <node name="crazyflie_visualization"
