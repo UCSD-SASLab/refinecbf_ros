@@ -182,8 +182,8 @@
   <arg name="sim_init_z" value="0.0" />
 
   <!-- Control parameters. -->
-  <arg name="K_file" value="$(find crazyflie_lqr)/references/K_sander.txt"/>
-  <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/u_ref_hover.txt"/>
+  <arg name="K_file" value="$(find crazyflie_lqr)/references/K.txt"/>
+  <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref$(arg robot_number).txt"/>
 
   <!-- Time steps. -->
   <arg name="simulator_dt" value="0.001" />
@@ -198,12 +198,6 @@
   <arg name="fixed_frame" value="world" unless="$(arg hardware)"/>
   <arg name="fixed_frame" value="odom" if="$(arg hardware)"/>
 
-  <!-- TF static publisher to create a base_link frame for the crazyflie. -->
-  <node pkg="tf"
-        type="static_transform_publisher"
-        name="robot_base_link_publisher"
-        args="0 0 0 0 0 0 1 $(arg robot_frame) $(arg robot_frame)/base_link 100">
-  </node>
 
   <!-- LQR controller. -->
   <node name="lqr_controller"
@@ -269,7 +263,7 @@
   <group if="$(eval arg('hardware') == 1)">
     <!-- Crayzflie addressses -->
     
-    <arg name="uri" value="radio://0/80/2M/E7E7E7E70$(arg robot_number)" />
+    <arg name="uri" value="radio://0/80/2M/E7E7E7E7E$(arg robot_number)" />
 
     <arg name="mocap_frame" value="/natnet_ros/robot_1/pose" />
 
@@ -277,10 +271,14 @@
     <arg name="joy_dev" default="/dev/input/js0" />
 
       <!-- TF static publisher to tie the mocap output to the robot frame. -->
-    <node pkg="tf"
-        type="static_transform_publisher"
-        name="mocap_frame_publisher"
-        args="0 0 0 0 0 0 1 $(arg mocap_frame) $(arg robot_frame) 100">
+    <node pkg="tf" type="static_transform_publisher" name="broadcaster_two" args="0 0 0 0 0 0 1 world odom 100" />
+    <node name="cmd_vel_converter"
+        pkg="crazyflie_control_merger"
+        type="cmd_vel_converter_node"
+        output="screen">
+
+      <param name="topics/control" value="$(arg robot_safe_control_topic)" />
+      <param name="topics/cmd_vel" value="/$(arg robot_frame)/cmd_vel" />
     </node>
 
     <!-- Crazyflie interface. -->
