@@ -21,19 +21,28 @@ class CrazyflieNominalControl(NominalController):
         super().__init__()
         self.config = Config(hj_setup=False)
         self.dynamics = self.config.dynamics
+        # Control bounds
+        self.max_thrust = rospy.get_param("~control/max_thrust")
+        self.min_thrust = rospy.get_param("~control/min_thrust")
+        self.max_roll = rospy.get_param("~control/max_roll")
+        self.max_pitch = rospy.get_param("~control/max_pitch")
+        self.safety_controls_idis = self.config.safety_controls
 
-        self.state = np.zeros(self.dynamics.n_dims)
         self.target = jnp.array(rospy.get_param("/ctr/nominal/goal/coordinates"))
-        assert len(self.target) == self.dynamics.n_dims
+        self.state = np.zeros_like(self.target)
+        # assert len(self.target) == self.dynamics.n_dims  # TODO: Different check needed
 
-        self.u_target = jnp.array(rospy.get_param("/ctr/nominal/goal/control"))
-        assert len(self.u_target) == self.dynamics.control_dims
+        utarget_file = rospy.get_param("~LQR/u_ref_file")
+        self.u_target = np.loadtxt(utarget_file)
+        # assert len(self.u_target) == self.dynamics.control_dims  # TODO: Different check needed
 
         # Initialize parameters
-        self.gain = jnp.array(rospy.get_param("/ctr/nominal/goal/gain"))
-        assert self.gain.shape == (self.dynamics.control_dims, self.dynamics.n_dims)
-        umin = np.array(self.config.control_space["lo"])
-        umax = np.array(self.config.control_space["hi"])
+        self.gain = np.array(rospy.get_param("/ctr/nominal/goal/gain"))
+        # assert self.gain.shape == (self.dynamics.control_dims, self.dynamics.n_dims)  # TODO: Diff check needed
+        umin = np.array([-self.max_roll, -self.max_pitch, -np.inf, self.min_thrust])
+        umax = np.array([self.max_roll, self.max_pitch, np.inf, self.max_thrust])
+        umin[self.safety_controls_idis] = np.array(self.config.control_space["lo"])
+        umax[self.safety_controls_idis] = np.array(self.config.control_space["hi"])
         self.controller = lambda x, t: np.clip(self.u_target + self.gain @ (x - self.target), umin, umax)
 
 

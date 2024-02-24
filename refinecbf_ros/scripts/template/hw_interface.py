@@ -111,6 +111,9 @@ class BaseInterface:
     def process_disturbance(self, disturbance_msg):
         raise NotImplementedError("Must be subclassed")
 
+    def clip_control_output(self, control_in_msg):
+        return control_in_msg
+    
     def override_safe_control(self):
         """
         Checks if the robot should override the safe control. Defaults to False.

@@ -16,10 +16,10 @@
           2. file:  Load as state_discretized value function 
           3. sdf:   Have the signed distance function be used 
     -->
-  <arg name="vf_initialization_method" default="cbf" />
+  <arg name="vf_initialization_method" default="sdf" />
   
     <!-- Simulation or hardware -->
-  <arg name="hardware" default="False" />
+  <arg name="hardware" default="True" />
 
     <!-- What message passing method to use
           Options:
@@ -29,7 +29,7 @@
   <arg name="vf_update_method" default="pubsub" />
 
     <!-- Choose which files to load to describe the environment -->
-  <arg name="env_config_file" default="crazyflie_env.yaml" />
+  <arg name="env_config_file" default="simple_env.yaml" />
   
     <!-- Choose which files to load to describe the refinecbf internal nominal controller -->
   <arg name="control_config_file" default="crazyflie_control.yaml" />
@@ -77,8 +77,16 @@
   <arg name="control_config_file_loc"
     value="$(find refinecbf_ros)/config/$(arg control_config_file)" />
   <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
-  
-  
+
+  <!-- Nominal control and its bounds -->
+  <arg name="K_file" value="$(find crazyflie_lqr)/references/K.txt"/>
+  <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref$(arg robot_number).txt" if="$(arg hardware)" />
+  <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref_sim.txt" unless="$(arg hardware)" />
+  <arg name="max_thrust" value="15.0" />
+  <arg name="min_thrust" value="4.0" />
+  <arg name="max_roll" value="0.1" />
+  <arg name="max_pitch" value="0.1" />
+
   <!-- ___________________________________________________________________________________________________________ -->
   <!-- Below: all the nodes being loaded -->
   <node name="cf_nominal_control"
@@ -90,6 +98,13 @@
     <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
     <param name="topics/external_control" value="$(arg cbf_external_control_topic)" />
     <param name="topics/publish_external_control_flag" value="$(arg publish_external_control_flag)" />
+    <param name="LQR/K_file" value="$(arg K_file)" />
+    <param name="LQR/u_ref_file" value="$(arg u_ref_file)" />
+    <param name="control/max_thrust" value="$(arg max_thrust)" />
+    <param name="control/min_thrust" value="$(arg min_thrust)" />
+    <param name="control/max_roll" value="$(arg max_roll)" />
+    <param name="control/max_pitch" value="$(arg max_pitch)" />
+
   </node> 
 
   <node name="cf_hw_interface"
@@ -105,6 +120,10 @@
     <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
     <param name="topics/simulated_disturbance" value="$(arg simulated_disturbance_topic)" />
     <param name="topics/robot_disturbance" value="$(arg robot_disturbance_topic)" />
+    <param name="control/max_thrust" value="$(arg max_thrust)" />
+    <param name="control/min_thrust" value="$(arg min_thrust)" />
+    <param name="control/max_roll" value="$(arg max_roll)" />
+    <param name="control/max_pitch" value="$(arg max_pitch)" />
   </node>
 
   <node name="obstacle_node"
@@ -174,16 +193,18 @@
   <!-- Takeoff hover point. -->
   <arg name="takeoff_hover_x" value="0.0" />
   <arg name="takeoff_hover_y" value="0.0" />
-  <arg name="takeoff_hover_z" value="1.0" />
+  <arg name="takeoff_hover_z" value="0.8" />
+
+  <arg name="takeoff_thrust" default="13.0" if="$(eval robot_number == 1)" />
+  <arg name="takeoff_thrust" default="12.0" if="$(eval robot_number == 2)" />
+  <arg name="takeoff_thrust" default="11.5" if="$(eval robot_number == 3)" />
+  <arg name="takeoff_duration" default="1.5" />
+  <arg name="landing_duration" default="5.0" />
 
   <!-- Start point for the simulator. NOT SURE IF WE NEED THIS FOR HW EXPERIMENTS, DOESNT HURT TO HAVE THOUGH -->
   <arg name="sim_init_x" value="0.0" />
   <arg name="sim_init_y" value="0.0" />
   <arg name="sim_init_z" value="0.0" />
-
-  <!-- Control parameters. -->
-  <arg name="K_file" value="$(find crazyflie_lqr)/references/K_sander.txt"/>
-  <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/u_ref_hover.txt"/>
 
   <!-- Time steps. -->
   <arg name="simulator_dt" value="0.001" />
@@ -198,12 +219,6 @@
   <arg name="fixed_frame" value="world" unless="$(arg hardware)"/>
   <arg name="fixed_frame" value="odom" if="$(arg hardware)"/>
 
-  <!-- TF static publisher to create a base_link frame for the crazyflie. -->
-  <node pkg="tf"
-        type="static_transform_publisher"
-        name="robot_base_link_publisher"
-        args="0 0 0 0 0 0 1 $(arg robot_frame) $(arg robot_frame)/base_link 100">
-  </node>
 
   <!-- LQR controller. -->
   <node name="lqr_controller"
@@ -222,6 +237,10 @@
     <param name="topics/state" value="$(arg robot_state_topic)" />
     <param name="topics/control" value="$(arg lqr_control_topic)" />
     <param name="topics/in_flight" value="$(arg in_flight_topic)" />
+    <param name="control/max_thrust" value="$(arg max_thrust)" />
+    <param name="control/min_thrust" value="$(arg min_thrust)" />
+    <param name="control/max_roll" value="$(arg max_roll)" />
+    <param name="control/max_pitch" value="$(arg max_pitch)" />
   </node>
 
   <!-- Takeoff server node. -->
@@ -238,6 +257,9 @@
     <param name="hover/x" value="$(arg takeoff_hover_x)" />
     <param name="hover/y" value="$(arg takeoff_hover_y)" />
     <param name="hover/z" value="$(arg takeoff_hover_z)" />
+    <param name="takeoff/thrust" value="$(arg takeoff_thrust)" />
+    <param name="duration/open_loop" value="$(arg takeoff_duration)" />
+    <param name="duration/landing" value="$(arg landing_duration)" />
   </node>
 
   <!-- Takeoff control filter node. -->
@@ -269,7 +291,7 @@
   <group if="$(eval arg('hardware') == 1)">
     <!-- Crayzflie addressses -->
     
-    <arg name="uri" value="radio://0/80/2M/E7E7E7E70$(arg robot_number)" />
+    <arg name="uri" value="radio://0/80/2M/E7E7E7E7E$(arg robot_number)" />
 
     <arg name="mocap_frame" value="/natnet_ros/robot_1/pose" />
 
@@ -277,10 +299,14 @@
     <arg name="joy_dev" default="/dev/input/js0" />
 
       <!-- TF static publisher to tie the mocap output to the robot frame. -->
-    <node pkg="tf"
-        type="static_transform_publisher"
-        name="mocap_frame_publisher"
-        args="0 0 0 0 0 0 1 $(arg mocap_frame) $(arg robot_frame) 100">
+    <node pkg="tf" type="static_transform_publisher" name="broadcaster_two" args="0 0 0 0 0 0 1 world odom 100" />
+    <node name="cmd_vel_converter"
+        pkg="crazyflie_control_merger"
+        type="cmd_vel_converter_node"
+        output="screen">
+
+      <param name="topics/control" value="$(arg robot_safe_control_topic)" />
+      <param name="topics/cmd_vel" value="/$(arg robot_frame)/cmd_vel" />
     </node>
 
     <!-- Crazyflie interface. -->
