@@ -16,10 +16,10 @@
           2. file:  Load as state_discretized value function 
           3. sdf:   Have the signed distance function be used 
     -->
-  <arg name="vf_initialization_method" default="cbf" />
+  <arg name="vf_initialization_method" default="sdf" />
   
     <!-- Simulation or hardware -->
-  <arg name="hardware" default="False" />
+  <arg name="hardware" default="True" />
 
     <!-- What message passing method to use
           Options:
@@ -29,7 +29,7 @@
   <arg name="vf_update_method" default="pubsub" />
 
     <!-- Choose which files to load to describe the environment -->
-  <arg name="env_config_file" default="crazyflie_env.yaml" />
+  <arg name="env_config_file" default="simple_env.yaml" />
   
     <!-- Choose which files to load to describe the refinecbf internal nominal controller -->
   <arg name="control_config_file" default="crazyflie_control.yaml" />
@@ -77,7 +77,7 @@
   <arg name="control_config_file_loc"
     value="$(find refinecbf_ros)/config/$(arg control_config_file)" />
   <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
-  
+
   <!-- Nominal control and its bounds -->
   <arg name="K_file" value="$(find crazyflie_lqr)/references/K.txt"/>
   <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref$(arg robot_number).txt" if="$(arg hardware)" />
@@ -86,7 +86,7 @@
   <arg name="min_thrust" value="4.0" />
   <arg name="max_roll" value="0.1" />
   <arg name="max_pitch" value="0.1" />
-  
+
   <!-- ___________________________________________________________________________________________________________ -->
   <!-- Below: all the nodes being loaded -->
   <node name="cf_nominal_control"
@@ -193,7 +193,13 @@
   <!-- Takeoff hover point. -->
   <arg name="takeoff_hover_x" value="0.0" />
   <arg name="takeoff_hover_y" value="0.0" />
-  <arg name="takeoff_hover_z" value="1.0" />
+  <arg name="takeoff_hover_z" value="0.8" />
+
+  <arg name="takeoff_thrust" default="13.0" if="$(eval robot_number == 1)" />
+  <arg name="takeoff_thrust" default="12.0" if="$(eval robot_number == 2)" />
+  <arg name="takeoff_thrust" default="11.5" if="$(eval robot_number == 3)" />
+  <arg name="takeoff_duration" default="1.5" />
+  <arg name="landing_duration" default="5.0" />
 
   <!-- Start point for the simulator. NOT SURE IF WE NEED THIS FOR HW EXPERIMENTS, DOESNT HURT TO HAVE THOUGH -->
   <arg name="sim_init_x" value="0.0" />
@@ -251,6 +257,9 @@
     <param name="hover/x" value="$(arg takeoff_hover_x)" />
     <param name="hover/y" value="$(arg takeoff_hover_y)" />
     <param name="hover/z" value="$(arg takeoff_hover_z)" />
+    <param name="takeoff/thrust" value="$(arg takeoff_thrust)" />
+    <param name="duration/open_loop" value="$(arg takeoff_duration)" />
+    <param name="duration/landing" value="$(arg landing_duration)" />
   </node>
 
   <!-- Takeoff control filter node. -->
