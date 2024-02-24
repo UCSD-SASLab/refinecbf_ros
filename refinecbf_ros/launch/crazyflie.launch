@@ -78,9 +78,14 @@
     value="$(find refinecbf_ros)/config/$(arg control_config_file)" />
   <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
   
+  <!-- Nominal control and its bounds -->
   <arg name="K_file" value="$(find crazyflie_lqr)/references/K.txt"/>
   <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref$(arg robot_number).txt" if="$(arg hardware)" />
   <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref_sim.txt" unless="$(arg hardware)" />
+  <arg name="max_thrust" value="15.0" />
+  <arg name="min_thrust" value="4.0" />
+  <arg name="max_roll" value="0.1" />
+  <arg name="max_pitch" value="0.1" />
   
   <!-- ___________________________________________________________________________________________________________ -->
   <!-- Below: all the nodes being loaded -->
@@ -95,6 +100,11 @@
     <param name="topics/publish_external_control_flag" value="$(arg publish_external_control_flag)" />
     <param name="LQR/K_file" value="$(arg K_file)" />
     <param name="LQR/u_ref_file" value="$(arg u_ref_file)" />
+    <param name="control/max_thrust" value="$(arg max_thrust)" />
+    <param name="control/min_thrust" value="$(arg min_thrust)" />
+    <param name="control/max_roll" value="$(arg max_roll)" />
+    <param name="control/max_pitch" value="$(arg max_pitch)" />
+
   </node> 
 
   <node name="cf_hw_interface"
@@ -110,6 +120,10 @@
     <param name="topics/cbf_external_control" value="$(arg cbf_external_control_topic)" />
     <param name="topics/simulated_disturbance" value="$(arg simulated_disturbance_topic)" />
     <param name="topics/robot_disturbance" value="$(arg robot_disturbance_topic)" />
+    <param name="control/max_thrust" value="$(arg max_thrust)" />
+    <param name="control/min_thrust" value="$(arg min_thrust)" />
+    <param name="control/max_roll" value="$(arg max_roll)" />
+    <param name="control/max_pitch" value="$(arg max_pitch)" />
   </node>
 
   <node name="obstacle_node"
@@ -217,6 +231,10 @@
     <param name="topics/state" value="$(arg robot_state_topic)" />
     <param name="topics/control" value="$(arg lqr_control_topic)" />
     <param name="topics/in_flight" value="$(arg in_flight_topic)" />
+    <param name="control/max_thrust" value="$(arg max_thrust)" />
+    <param name="control/min_thrust" value="$(arg min_thrust)" />
+    <param name="control/max_roll" value="$(arg max_roll)" />
+    <param name="control/max_pitch" value="$(arg max_pitch)" />
   </node>
 
   <!-- Takeoff server node. -->

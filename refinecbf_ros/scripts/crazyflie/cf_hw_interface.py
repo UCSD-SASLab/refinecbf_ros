@@ -26,7 +26,7 @@ class CrazyflieInterface(BaseInterface):
     """
 
     state_msg_type = PositionVelocityYawStateStamped
-    control_out_msg_type = ControlStamped  # FIXME: Set differently
+    control_out_msg_type = ControlStamped
     external_control_msg_type = ControlStamped
     disturbance_out_msg_type = DisturbanceStamped
 
@@ -43,6 +43,13 @@ class CrazyflieInterface(BaseInterface):
         self.external_setpoint_sub = rospy.Subscriber("/control/external_setpoint", Empty, self.callback_setpoint)
         self.external_setpoint_ts = None
         self.external_setpoint = None
+        
+        # Control bounds
+        self.max_thrust = rospy.get_param("~control/max_thrust")
+        self.min_thrust = rospy.get_param("~control/min_thrust")
+        self.max_roll = rospy.get_param("~control/max_roll")
+        self.max_pitch = rospy.get_param("~control/max_pitch")
+        
 
     def callback_state(self, state_in_msg):
         #  state_msg is a PositionVelocityYawStateStamped message
@@ -69,9 +76,17 @@ class CrazyflieInterface(BaseInterface):
             control_out_msg.control.pitch = control_in[1]
             control_out_msg.control.yaw_dot = control_in[2]
             control_out_msg.control.thrust =  control_in[3]
+            control_out_msg.control = self.clip_control_output(control_out_msg.control)
         else:
             raise ValueError("Invalid safe control message type: {}".format(self.control_out_msg_type))
         return control_out_msg
+
+    def clip_control_output(self, control_in_msg):
+        control_in_msg.roll = np.minimum(self.max_roll, np.maximum(-self.max_roll, control_in_msg.roll))
+        control_in_msg.pitch = np.minimum(self.max_pitch, np.maximum(-self.max_pitch, control_in_msg.pitch))
+        control_in_msg.yaw_dot = control_in_msg.yaw_dot
+        control_in_msg.thrust = np.minimum(self.max_thrust, np.maximum(self.min_thrust, control_in_msg.thrust))
+        return control_in_msg
 
     def process_external_control(self, control_in_msg):
         # Inverse operation from process_safe_control
