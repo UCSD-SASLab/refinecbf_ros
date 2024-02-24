@@ -29,7 +29,7 @@
   <arg name="vf_update_method" default="pubsub" />
 
     <!-- Choose which files to load to describe the environment -->
-  <arg name="env_config_file" default="crazyflie_env_judy.yaml" />
+  <arg name="env_config_file" default="crazyflie_env.yaml" />
   
     <!-- Choose which files to load to describe the refinecbf internal nominal controller -->
   <arg name="control_config_file" default="crazyflie_control.yaml" />
