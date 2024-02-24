@@ -13,6 +13,8 @@ class Config:
         self.dynamics = self.setup_dynamics()
         self.control_space = rospy.get_param("~/env/control_space")
         self.disturbance_space = rospy.get_param("~/env/disturbance_space")
+        self.safety_states = rospy.get_param("~/env/safety_states")
+        self.safety_controls = rospy.get_param("~/env/safety_controls")
         self.state_domain = rospy.get_param("~/env/state_domain")
         self.grid = self.setup_grid()
 

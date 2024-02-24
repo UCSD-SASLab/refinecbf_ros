@@ -78,6 +78,9 @@
     value="$(find refinecbf_ros)/config/$(arg control_config_file)" />
   <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
   
+  <arg name="K_file" value="$(find crazyflie_lqr)/references/K.txt"/>
+  <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref$(arg robot_number).txt" if="$(arg hardware)" />
+  <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref_sim.txt" unless="$(arg hardware)" />
   
   <!-- ___________________________________________________________________________________________________________ -->
   <!-- Below: all the nodes being loaded -->
@@ -90,6 +93,8 @@
     <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
     <param name="topics/external_control" value="$(arg cbf_external_control_topic)" />
     <param name="topics/publish_external_control_flag" value="$(arg publish_external_control_flag)" />
+    <param name="LQR/K_file" value="$(arg K_file)" />
+    <param name="LQR/u_ref_file" value="$(arg u_ref_file)" />
   </node> 
 
   <node name="cf_hw_interface"
@@ -180,10 +185,6 @@
   <arg name="sim_init_x" value="0.0" />
   <arg name="sim_init_y" value="0.0" />
   <arg name="sim_init_z" value="0.0" />
-
-  <!-- Control parameters. -->
-  <arg name="K_file" value="$(find crazyflie_lqr)/references/K.txt"/>
-  <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref$(arg robot_number).txt"/>
 
   <!-- Time steps. -->
   <arg name="simulator_dt" value="0.001" />

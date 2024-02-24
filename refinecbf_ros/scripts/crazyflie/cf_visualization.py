@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))) # FIXME: Make it so that the directory is autoatically in search path
+import numpy as np
 from template.visualization import Visualization
 
 class CrazyflieVisualization(Visualization):
@@ -146,8 +147,8 @@ class CrazyflieVisualization(Visualization):
 
         point = Point()
         point.x = 0.0
-        point.y = control_dict['goal']['coordinates'][0]
-        point.z = control_dict['goal']['coordinates'][1]
+        point.y = np.array(control_dict['goal']['coordinates'])[self.state_safety_idis][0]
+        point.z = np.array(control_dict['goal']['coordinates'])[self.state_safety_idis][1]
         marker.points.append(point)
 
         marker.id = goal_marker_id

@@ -24,6 +24,12 @@ class SafetyFilterNode:
         gamma = rospy.get_param("/ctr/cbf/gamma", 1.0)
         slackify_safety_constraint = rospy.get_param("/ctr/cbf/slack", False)
 
+        config = Config(hj_setup=True)
+        self.dynamics = config.dynamics
+        self.grid = config.grid
+        self.safety_states_idis = config.safety_states
+        self.safety_controls_idis = config.safety_controls
+
         if self.vf_update_method == "pubsub":
             self.vf_sub = rospy.Subscriber(vf_topic, ValueFunctionMsg, self.callback_vf_update_pubsub)
         elif self.vf_update_method == "file":
@@ -33,9 +39,8 @@ class SafetyFilterNode:
         self.state_topic = rospy.get_param("~topics/state", "/state_array")
         self.state_sub = rospy.Subscriber(self.state_topic, Array, self.callback_state)
 
-        config = Config(hj_setup=True)
-        self.dynamics = config.dynamics
-        self.grid = config.grid
+
+
         alpha = lambda x: gamma * x
         self.cbf = TabularControlAffineCBF(self.dynamics, grid=self.grid, alpha=alpha)
 
@@ -95,7 +100,7 @@ class SafetyFilterNode:
             self.initialized_safety_filter = True
 
     def callback_safety_filter(self, control_msg):
-        nom_control = np.array([control_msg.value])
+        nom_control = np.array(control_msg.value)
         if self.state is None:
             rospy.loginfo(" State not set yet, no control published")
             return
@@ -103,16 +108,18 @@ class SafetyFilterNode:
             safety_control_msg = control_msg
             rospy.logwarn_throttle_identical(5.0, "Safety filter not initialized yet, outputting nominal control")
         else:
+            nom_control_active = nom_control[self.safety_controls_idis]
             safety_control_msg = Array()
-            vf = np.array(self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)).item()
-            rospy.loginfo_throttle_identical(1.0, "value at current state:{:.2f}".format(vf))  # TODO: Comment once visualized
-            safety_control = self.safety_filter_solver(self.state.copy(), nominal_control=nom_control)
-            safety_control_msg.value = safety_control[0].tolist()  # Ensures compatibility
+            safety_control_active = self.safety_filter_solver(self.state.copy(), nominal_control=np.array([nom_control_active]))
+            safety_control = nom_control.copy()
+
+            safety_control[self.safety_controls_idis] = safety_control_active[0]
+            safety_control_msg.value = safety_control.tolist()  # Ensures compatibility
 
         self.pub_filtered_control.publish(safety_control_msg)
 
     def callback_state(self, state_est_msg):
-        self.state = np.array(state_est_msg.value)
+        self.state = np.array(state_est_msg.value)[self.safety_states_idis]
 
 
 if __name__ == "__main__":

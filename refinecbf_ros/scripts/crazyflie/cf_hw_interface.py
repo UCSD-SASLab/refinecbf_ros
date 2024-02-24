@@ -45,13 +45,16 @@ class CrazyflieInterface(BaseInterface):
         self.external_setpoint = None
 
     def callback_state(self, state_in_msg):
-        #  state_msg is a PositionVelocityYawStateStamped message by default, we only care about planar motion
+        #  state_msg is a PositionVelocityYawStateStamped message
         state_out_msg = Array()
         state_out_msg.value = [
+            state_in_msg.state.x,
             state_in_msg.state.y,
             state_in_msg.state.z,
+            state_in_msg.state.x_dot,
             state_in_msg.state.y_dot,
             state_in_msg.state.z_dot,
+            state_in_msg.state.yaw
         ]
         self.state_pub.publish(state_out_msg)
 
@@ -62,16 +65,10 @@ class CrazyflieInterface(BaseInterface):
         control_out_msg = self.control_out_msg_type()
         control_out_msg.header.stamp = rospy.Time.now()
         if self.control_out_msg_type == ControlStamped:
-            control_out_msg.control.roll = np.arctan(control_in[0])
-            control_out_msg.control.pitch = 0.0
-            control_out_msg.control.yaw_dot = 0.0
-            control_out_msg.control.thrust = control_in[1]
-        elif self.control_out_msg_type == PrioritizedControlStamped:
-            control_out_msg.control.priority = 1.0
-            control_out_msg.control.control.roll = np.arctan(control_in[0])
-            control_out_msg.control.control.pitch = 0.0
-            control_out_msg.control.control.yaw_dot = 0.0
-            control_out_msg.control.control.thrust = control_in[1]
+            control_out_msg.control.roll = np.arctan(control_in[0])  # TODO: Seems hacky to have np.arctan here
+            control_out_msg.control.pitch = control_in[1]
+            control_out_msg.control.yaw_dot = control_in[2]
+            control_out_msg.control.thrust =  control_in[3]
         else:
             raise ValueError("Invalid safe control message type: {}".format(self.control_out_msg_type))
         return control_out_msg
@@ -81,7 +78,7 @@ class CrazyflieInterface(BaseInterface):
         self.external_control_robot = control_in_msg
         control = control_in_msg.control
         control_out_msg = Array()
-        control_out_msg.value = [np.tan(control.roll), control.thrust]
+        control_out_msg.value = [np.tan(control.roll), control.pitch, control.yaw_dot, control.thrust]
         return control_out_msg
     
     def process_disturbance(self, disturbance_in_msg):
