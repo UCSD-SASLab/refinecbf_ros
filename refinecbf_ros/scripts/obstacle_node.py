@@ -83,6 +83,7 @@ class ObstacleNode:
 
     def update_sdf(self):
         sdf = hj.utils.multivmap(self.build_sdf(), jnp.arange(self.grid.ndim))(self.grid.states)
+        rospy.loginfo("Here!")
         if self.vf_update_method == "pubsub":
             self.sdf_update_pub.publish(ValueFunctionMsg(sdf.flatten()))
         else:  # self.vf_update_method == "file"
