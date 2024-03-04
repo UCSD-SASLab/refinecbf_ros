@@ -39,11 +39,12 @@ class HJReachabilityNode:
         """
         # Load configuration
         config = Config(hj_setup=True)
-
         # Initialize dynamics, grid, and Hamilton-Jacobi dynamics
         self.dynamics = config.dynamics
         self.grid = config.grid
         self.hj_dynamics = config.hj_dynamics
+        self.control_space = self.hj_dynamics.control_space
+        self.disturbance_space = self.hj_dynamics.disturbance_space
 
         self.vf_update_method = rospy.get_param("~vf_update_method")
         # Initialize a lock for thread-safe value function updates
@@ -70,7 +71,7 @@ class HJReachabilityNode:
         elif self.vf_initialization_method == "cbf":
             cbf_params = rospy.get_param("/cbf")["Parameters"]
             original_cbf = QuadraticCBF(self.dynamics, cbf_params, test=False)
-            tabular_cbf = TabularControlAffineCBF(self.dynamics, {}, test=False, grid=self.grid)
+            tabular_cbf = TabularControlAffineCBF(self.dynamics, params={}, test=False, grid=self.grid)
             tabular_cbf.tabularize_cbf(original_cbf)
             self.vf = tabular_cbf.vf_table.copy()
         elif self.vf_initialization_method == "file":
@@ -131,10 +132,10 @@ class HJReachabilityNode:
 
         This method updates the disturbance space and the dynamics.
         """
-        with self.vf_lock:
+        with self.vf_lock: 
             max_disturbance = msg.hi
             min_disturbance = msg.lo
-            self.disturbance_space = hj.Sets.Box(lo=jnp.array(min_disturbance), hi=jnp.array(max_disturbance))
+            self.disturbance_space = hj.sets.Box(lo=jnp.array(min_disturbance), hi=jnp.array(max_disturbance))
             self.update_dynamics()  # FIXME:Check whether this is required or happens automatically
 
     def callback_actuation_update(self, msg):
@@ -149,7 +150,7 @@ class HJReachabilityNode:
         with self.vf_lock:
             max_control = msg.hi
             min_control = msg.lo
-            self.control_space = hj.Sets.Box(lo=jnp.array(min_control), hi=jnp.array(max_control))
+            self.control_space = hj.sets.Box(lo=jnp.array(min_control), hi=jnp.array(max_control))
             self.update_dynamics()  # FIXME:Check whether this is required or happens automatically
 
     def callback_sdf_update_pubsub(self, msg):

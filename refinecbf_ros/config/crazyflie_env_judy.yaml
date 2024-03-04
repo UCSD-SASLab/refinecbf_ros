@@ -8,9 +8,9 @@ safety_states:
 safety_controls:
   - 0
   - 3 
-
-obstacles: 
   
+obstacles: 
+
   obstacle1:
     type: 'Rectangle'
     mode: 'Active'
@@ -18,13 +18,24 @@ obstacles:
       - 0
       - 1
     minVal:
-      - -1.0
-      - 1.0
-    maxVal:
+      - 0.0
       - 2.0
+    maxVal:
+      - 4.0
       - 3.0
-    padding: .20
+    padding: .2
 
+  obstacle2:
+    type: 'Circle'
+    mode: 'Service'
+    indices:
+      - 0
+      - 1
+    center:
+      - -3.0
+      - 4.0
+    radius: 1
+    padding: .25
 
 boundary:
   padding: 0
@@ -32,23 +43,23 @@ boundary:
     - 0
     - 1
   minVal:
-    - -1.0
-    - 0.0
+    - -5.0
+    - -0.1
   maxVal:
-    - 8.0
     - 5.0
+    - 6.0
 
 obstacle_update_rate_hz: 5
 
 state_domain:
   lo:
     - -6.0
-    - -0.0
+    - -1.0
     - -5.0
     - -5.0
   hi:
     - 6.0
-    - 4.1
+    - 6.0
     - 5.0
     - 5.0
   resolution:
@@ -62,16 +73,24 @@ control_space:
   n_dims: 2
   lo:
     - -0.1
-    - 0.0
+    - 6.0
   hi: 
     - 0.1
-    - 12.0
+    - 15.0
 
 disturbance_space:
-  n_dims: 
-  lo: 0
-  hi: 0
+  n_dims: 1
+  lo: 
+    - 0.0
+  hi: 
+    - 0.0
 
 actuation_updates: []
 
-disturbance_updates: []
+disturbance_updates:
+  disturbance1:
+    n_dims: 1
+    lo:
+      - -1.0
+    hi:
+      - 1.0

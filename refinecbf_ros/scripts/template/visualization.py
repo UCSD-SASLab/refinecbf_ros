@@ -17,6 +17,8 @@ class Visualization:
 
         # Config:
         config = Config(hj_setup=True)
+
+        self.state_safety_idis = config.safety_states
         self.grid = config.grid
 
         # Control Dict with Goal Params:
@@ -134,7 +136,7 @@ class Visualization:
         self.active_obstacle_names = obstacle_msg.obstacle_names
 
     def callback_state(self, state_msg):
-        self.robot_state = jnp.reshape(np.array(state_msg.value), (-1, 1)).T
+        self.robot_state = jnp.reshape(np.array(state_msg.value)[self.state_safety_idis], (-1, 1)).T
         if hasattr(self, "sdf") and hasattr(self, "vf"):
             self.update_vf_contour()
             self.update_sdf_contour()

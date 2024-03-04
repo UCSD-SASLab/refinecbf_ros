@@ -24,10 +24,27 @@
         <param name="topics/filtered_control" value="$(arg cbf_safe_control_topic)" />
         <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
         <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
+        <param name="topics/disturbance_update" value="$(arg disturbance_update_topic)" />
         <param name="topics/vf_update" value="$(arg vf_update_topic)" />
         <param name="safety_filter_active" value="$(arg safety_filter_active)" />
         <param name="vf_update_method" value="$(arg vf_update_method)" />
     </node>
+ 
+  <!-- Services -->
+    <arg name="modify_environment_service" value="/env/modify_environment" />
+
+ <!-- Modify Environment server node. -->
+    <node name="modify_environment"
+            pkg="refinecbf_ros"
+            type="modify_environment.py"
+            output="screen"
+            ns="env">
+        <param name="topics/disturbance_update" value="$(arg disturbance_update_topic)" />
+        <param name="topics/actuation_update" value="$(arg actuation_update_topic)" />
+        <param name="services/modify_environment" value="$(arg modify_environment_service)" />
+
+    </node>
+  
     <group if="$(eval arg('vf_initialization_method') == 'cbf')">
         <arg name="CBF_parameter_file_loc" value="$(find refinecbf_ros)/config/$(arg CBF_parameter_file)" />
         <rosparam ns="cbf" file="$(arg CBF_parameter_file_loc)" command="load" />

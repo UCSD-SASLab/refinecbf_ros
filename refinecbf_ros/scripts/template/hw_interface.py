@@ -28,6 +28,7 @@ class BaseInterface:
     state_msg_type = None
     control_out_msg_type = None
     external_control_msg_type = None
+    disturbance_out_msg_type = None
 
     def __init__(self):
         """
@@ -50,6 +51,12 @@ class BaseInterface:
         cbf_external_control_topic = rospy.get_param("~topics/cbf_external_control")
         rospy.Subscriber(robot_external_control_topic, self.external_control_msg_type, self.callback_external_control)
         self.external_control_pub = rospy.Publisher(cbf_external_control_topic, Array, queue_size=1)
+
+        # Set up disturbance subscriber and publisher
+        robot_disturbance_topic = rospy.get_param("~topics/robot_disturbance")
+        simulated_disturbance_topic = rospy.get_param("~topics/simulated_disturbance")
+        rospy.Subscriber(simulated_disturbance_topic, Array, self.callback_disturbance)
+        self.disturbance_pub = rospy.Publisher(robot_disturbance_topic, self.disturbance_out_msg_type, queue_size=1)
 
     def callback_state(self, state_msg):
         """
@@ -90,12 +97,23 @@ class BaseInterface:
         if self.override_nominal_control():
             self.external_control_pub.publish(control_out_msg) if self.override_nominal_control() else None
 
+    def callback_disturbance(self, disturbance_msg):
+        disturbance_out_msg = self.process_disturbance(disturbance_msg)
+        assert type(disturbance_out_msg) == self.disturbance_out_msg_type, "Override to process the disturbance message"
+        self.disturbance_pub.publish(disturbance_out_msg)
+
     def process_external_control(self, control_in_msg):
         raise NotImplementedError("Must be subclassed")
     
     def process_safe_control(self, control_in_msg):
         raise NotImplementedError("Must be subclassed")
+    
+    def process_disturbance(self, disturbance_msg):
+        raise NotImplementedError("Must be subclassed")
 
+    def clip_control_output(self, control_in_msg):
+        return control_in_msg
+    
     def override_safe_control(self):
         """
         Checks if the robot should override the safe control. Defaults to False.

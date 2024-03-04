@@ -65,6 +65,7 @@ file(GLOB srv_files RELATIVE ${PROJECT_SOURCE_DIR}/srv ${PROJECT_SOURCE_DIR}/srv
 add_service_files(
   FILES
   ActivateObstacle.srv
+  ModifyEnvironment.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -174,6 +175,7 @@ catkin_install_python(PROGRAMS
   scripts/turtlebot3/tb_hw_interface.py
   scripts/crazyflie/cf_nominal_controller.py
   scripts/crazyflie/cf_hw_interface.py
+  scripts/modify_environment.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
