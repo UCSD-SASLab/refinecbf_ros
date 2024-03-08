@@ -137,8 +137,11 @@ class Visualization:
 
     def callback_state(self, state_msg):
         self.robot_state = jnp.reshape(np.array(state_msg.value)[self.state_safety_idis], (-1, 1)).T
-        if hasattr(self, "sdf") and hasattr(self, "vf"):
+        if hasattr(self, "vf"):
             self.update_vf_contour()
+        if hasattr(self,"sdf"):
             self.update_sdf_contour()
+        if hasattr(self,"obstacle_dict"):
             self.add_obstacles()
+        if hasattr(self,"control_dict"):
             self.add_goal()

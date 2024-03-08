@@ -16,7 +16,7 @@
           2. file:  Load as state_discretized value function 
           3. sdf:   Have the signed distance function be used 
     -->
-  <arg name="vf_initialization_method" default="cbf" />
+  <arg name="vf_initialization_method" default="sdf" />
   
     <!-- Simulation or hardware -->
   <arg name="hardware" default="false" />
@@ -37,6 +37,9 @@
     <!-- Choose the name of CBF parameter file or initial vf file -->
   <arg name="CBF_parameter_file" default="turtlebot_CBF_params.yaml" />
   <arg name="initial_vf_file" default="turtlebot_vf.npy" />
+
+    <!-- Choose the Nominal Controller to be used. Options: PD or HJR-->
+  <arg name="nominal_controller_type" default="PD" />
 
 
   <!-- ___________________________________________________________________________________________________________ -->
@@ -86,6 +89,7 @@
     <param name="topics/nominal_control" value="$(arg cbf_nominal_control_topic)" />
     <param name="topics/external_control" value="$(arg cbf_external_control_topic)" />
     <param name="topics/publish_external_control_flag" value="$(arg publish_external_control_flag)" />
+    <param name="controller_type" value="$(arg nominal_controller_type)" />
   </node>
 
   <node name="turtlebot_hw_interface"

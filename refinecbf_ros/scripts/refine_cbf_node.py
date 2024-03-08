@@ -51,8 +51,9 @@ class SafetyFilterNode:
 
         self.safety_filter_solver.umin = np.array(config.control_space["lo"])
         self.safety_filter_solver.umax = np.array(config.control_space["hi"])
-        self.safety_filter_solver.dmin = np.array(config.disturbance_space["lo"])
-        self.safety_filter_solver.dmax = np.array(config.disturbance_space["hi"])
+        if not config.disturbance_space["n_dims"] == 0:
+            self.safety_filter_solver.dmin = np.array(config.disturbance_space["lo"])
+            self.safety_filter_solver.dmax = np.array(config.disturbance_space["hi"])
 
         nom_control_topic = rospy.get_param("~topics/nominal_control", "/control/nominal")
         self.nominal_control_sub = rospy.Subscriber(nom_control_topic, Array, self.callback_safety_filter)
@@ -63,9 +64,9 @@ class SafetyFilterNode:
         actuation_update_topic = rospy.get_param("~topics/actuation_update", "/env/actuation_update")
         self.actuation_update_sub = rospy.Subscriber(actuation_update_topic, HiLoArray, self.callback_actuation_update)
 
-        disturbance_update_topic = rospy.get_param("~topics/disturbance_update")
-        self.disturbance_update_sub = rospy.Subscriber(disturbance_update_topic, HiLoArray, self.callback_disturbance_update)
-
+        if not config.disturbance_space["n_dims"] == 0:
+            disturbance_update_topic = rospy.get_param("~topics/disturbance_update")
+            self.disturbance_update_sub = rospy.Subscriber(disturbance_update_topic, HiLoArray, self.callback_disturbance_update)
         if self.safety_filter_active:
             # This has to be done to ensure real-time performance
             self.initialized_safety_filter = False

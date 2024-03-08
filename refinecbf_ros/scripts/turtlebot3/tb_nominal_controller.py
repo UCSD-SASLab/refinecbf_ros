@@ -11,6 +11,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from turtlebot3.hjr_nominal_control import NominalControlHJ
+from turtlebot3.pd_nominal_control import NominalControlPD
 from template.nominal_controller import NominalController
 
 
@@ -34,21 +35,31 @@ class TurtlebotNominalControl(NominalController):
         assert self.time_intervals > 0
         self.solver_accuracy = rospy.get_param("/ctr/nominal/goal/solver_accuracy", "low")
         assert self.solver_accuracy in ["low", "medium", "high", "very_high"]
+        self.umin = jnp.array(rospy.get_param("/env/control_space/lo"))
+        self.umax = jnp.array(rospy.get_param("/env/control_space/hi"))
+
+        controller_type = rospy.get_param("~controller_type")
 
         # Initialize Controller
-        self.controller_prep = NominalControlHJ(
-            self.hj_dynamics,
-            self.grid,
-            final_time=self.max_time,
-            time_intervals=self.time_intervals,
-            solver_accuracy=self.solver_accuracy,
-            target=self.target,
-            padding=self.padding,
-        )
-        rospy.loginfo("Solving for nominal control, nominal control default is 0")
-        self.controller = lambda x, t: np.zeros(self.dynamics.control_dims)
-        self.controller_prep.solve()  # Solves the problem so that it becomes table lookup
-        self.controller = self.controller_prep.get_nominal_control
+        if controller_type == "HJR":
+            self.controller_prep = NominalControlHJ(
+                self.hj_dynamics,
+                self.grid,
+                final_time=self.max_time,
+                time_intervals=self.time_intervals,
+                solver_accuracy=self.solver_accuracy,
+                target=self.target,
+                padding=self.padding,
+            )
+            rospy.loginfo("Solving for nominal control, nominal control default is 0")
+            self.controller = lambda x, t: np.zeros(self.dynamics.control_dims)
+            self.controller_prep.solve()  # Solves the problem so that it becomes table lookup
+            self.controller = self.controller_prep.get_nominal_control
+        elif controller_type == "PD":
+            self.controller = NominalControlPD(target=self.target,umin=self.umin,umax=self.umax).get_nominal_control
+        else:
+            raise ValueError(
+                            "Invalid Controller Type: {}".format(controller_type))
 
         rospy.loginfo("Nominal controller ready!")
 
