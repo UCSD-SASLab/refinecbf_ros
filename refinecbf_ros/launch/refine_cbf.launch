@@ -14,6 +14,7 @@
     <arg name="CBF_parameter_file" />
     <arg name="initial_vf_file" />
     <arg name="vf_update_method" />
+    <arg name="vf_update_accuracy" />
 
     <node name="refine_cbf"
         pkg="refinecbf_ros"
@@ -67,6 +68,7 @@
             <param name="update_vf_online" value="$(arg update_vf_online)" />
             <param name="vf_initialization_method" value="$(arg vf_initialization_method)" />
             <param name="vf_update_method" value="$(arg vf_update_method)" />
+            <param name="vf_update_accuracy" value="$(arg vf_update_accuracy)" />
         </node>
     </group>
 

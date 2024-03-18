@@ -35,29 +35,34 @@ class BaseInterface:
         Initialize the BaseInterface.
         """
         # Set up state subscriber and publisher
-        robot_state_topic = rospy.get_param("~topics/robot_state")
+        self.robot_state_topic = rospy.get_param("~topics/robot_state")
         cbf_state_topic = rospy.get_param("~topics/cbf_state")
-        rospy.Subscriber(robot_state_topic, self.state_msg_type, self.callback_state)
         self.state_pub = rospy.Publisher(cbf_state_topic, Array, queue_size=1)
 
         # Set up safe control subscriber and publisher
         robot_safe_control_topic = rospy.get_param("~topics/robot_safe_control")
-        cbf_safe_control_topic = rospy.get_param("~topics/cbf_safe_control")
-        rospy.Subscriber(cbf_safe_control_topic, Array, self.callback_safe_control)
+        self.cbf_safe_control_topic = rospy.get_param("~topics/cbf_safe_control")
         self.safe_control_pub = rospy.Publisher(robot_safe_control_topic, self.control_out_msg_type, queue_size=1)
 
         # Set up external control subscriber and publisher
-        robot_external_control_topic = rospy.get_param("~topics/robot_external_control")
+        self.robot_external_control_topic = rospy.get_param("~topics/robot_external_control")
         cbf_external_control_topic = rospy.get_param("~topics/cbf_external_control")
-        rospy.Subscriber(robot_external_control_topic, self.external_control_msg_type, self.callback_external_control)
         self.external_control_pub = rospy.Publisher(cbf_external_control_topic, Array, queue_size=1)
 
         # Set up disturbance subscriber and publisher
         if not rospy.get_param("~/env/disturbance_space/n_dims") == 0:
             robot_disturbance_topic = rospy.get_param("~topics/robot_disturbance")
-            simulated_disturbance_topic = rospy.get_param("~topics/simulated_disturbance")
-            rospy.Subscriber(simulated_disturbance_topic, Array, self.callback_disturbance)
+            self.simulated_disturbance_topic = rospy.get_param("~topics/simulated_disturbance")
             self.disturbance_pub = rospy.Publisher(robot_disturbance_topic, self.disturbance_out_msg_type, queue_size=1)
+        self.init_subscribers()
+
+    def init_subscribers(self):
+        rospy.Subscriber(self.robot_state_topic, self.state_msg_type, self.callback_state)
+        rospy.Subscriber(self.cbf_safe_control_topic, Array, self.callback_safe_control)
+        rospy.Subscriber(self.robot_external_control_topic, self.external_control_msg_type, self.callback_external_control)
+        if not rospy.get_param("~/env/disturbance_space/n_dims") == 0:
+            rospy.Subscriber(self.simulated_disturbance_topic, Array, self.callback_disturbance)
+
 
     def callback_state(self, state_msg):
         """

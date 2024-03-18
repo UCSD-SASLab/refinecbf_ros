@@ -158,7 +158,10 @@ class TurtlebotVisualization(Visualization):
         return marker
     
     def zero_level_set_contour(self,vf):
-        contour = plt.contour(self.grid.coordinate_vectors[0], self.grid.coordinate_vectors[1],vf[:, :, self.grid.nearest_index(self.robot_state)[0][2]].T, levels=[0])
+        robot_state = self.clip_state(self.robot_state)
+        contour = plt.contour(self.grid.coordinate_vectors[0], 
+                              self.grid.coordinate_vectors[1], 
+                              vf[:, :, self.grid.nearest_index(robot_state)[0][2]].T, levels=[0])
         array_points = [path.vertices for path in contour.collections[0].get_paths()]
         return array_points
 

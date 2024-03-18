@@ -68,6 +68,9 @@ class Visualization:
         self.obstacle_dict = rospy.get_param("~/env/obstacles")
         self.boundary_dict = rospy.get_param("~/env/boundary")
 
+    def clip_state(self, state):
+        return np.clip(state, np.array(self.grid.domain.lo) + 0.01, np.array(self.grid.domain.hi) - 0.01)
+
     def obstacle_marker(self, obstacle, obstacle_marker_id):
         raise NotImplementedError("Must Be Subclassed")
 

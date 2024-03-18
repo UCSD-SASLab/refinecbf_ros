@@ -26,14 +26,14 @@ class JackalInterface(BaseInterface):
     external_control_msg_type = Twist
 
     def __init__(self):
-        super().__init__()
-        
         # Initialize external control parameters
         self.external_control = None
         self.external_control_time_buffer = rospy.get_param("/ctr/external_control_buffer", 1.0)  # seconds
         self.external_control_change_time_buffer = rospy.get_param(
             "/ctr/external_control_change_buffer", 5.0
         )  # seconds
+
+        super().__init__()
 
     def callback_state(self, state_in_msg):
         w = state_in_msg.pose.pose.orientation.w

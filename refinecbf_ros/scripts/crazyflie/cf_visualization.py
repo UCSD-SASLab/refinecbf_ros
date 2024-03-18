@@ -11,6 +11,9 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))) # FIXME: Make it so that the directory is autoatically in search path
 import numpy as np
 from template.visualization import Visualization
+import matplotlib
+matplotlib.use('Agg')
+
 
 class CrazyflieVisualization(Visualization):
 
@@ -42,8 +45,8 @@ class CrazyflieVisualization(Visualization):
                 marker.color.b = 0.0
                 marker.color.a = 0.5
 
-            marker.pose.position.y = obstacle['center'][1]
-            marker.pose.position.z = obstacle['center'][0]
+            marker.pose.position.y = obstacle['center'][0]
+            marker.pose.position.z = obstacle['center'][1]
             marker.pose.position.x = 0.0
 
             marker.pose.orientation.x = 0.0
@@ -157,7 +160,10 @@ class CrazyflieVisualization(Visualization):
 
     
     def zero_level_set_contour(self,vf):
-        contour = plt.contour(self.grid.coordinate_vectors[0], self.grid.coordinate_vectors[1],vf[:, :, self.grid.nearest_index(self.robot_state)[0][2],self.grid.nearest_index(self.robot_state)[0][3]].T, levels=[0])
+        robot_state = self.clip_state(self.robot_state)
+        contour = plt.contour(self.grid.coordinate_vectors[0], 
+                              self.grid.coordinate_vectors[1], 
+                              vf[:, :, self.grid.nearest_index(robot_state)[0][2],self.grid.nearest_index(robot_state)[0][3]].T, levels=[0])
         array_points = [path.vertices for path in contour.collections[0].get_paths()]
         return array_points
 

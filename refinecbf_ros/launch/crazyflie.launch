@@ -19,17 +19,18 @@
   <arg name="vf_initialization_method" default="sdf" />
   
     <!-- Simulation or hardware -->
-  <arg name="hardware" default="True" />
+  <arg name="hardware" default="False" />
 
     <!-- What message passing method to use
           Options:
            1. pubsub:   flattens the vf and passes it 
            2. file:     Saves it as a file and pubsubs a Boolean
     -->
-  <arg name="vf_update_method" default="pubsub" />
+  <arg name="vf_update_method" default="file" />
+  <arg name="vf_update_accuracy" default="high" />
 
     <!-- Choose which files to load to describe the environment -->
-  <arg name="env_config_file" default="simple_env.yaml" />
+  <arg name="env_config_file" default="detection_env.yaml" />
   
     <!-- Choose which files to load to describe the refinecbf internal nominal controller -->
   <arg name="control_config_file" default="crazyflie_control.yaml" />
@@ -38,8 +39,8 @@
   <arg name="CBF_parameter_file" default="crazyflie_CBF_params.yaml" />
   <arg name="initial_vf_file" default="target_values_judy.npy" />
 
-  <!-- For HW experiment, what robot are we dealing with  -->
-  <arg name="robot_number" default="1" />
+  <!-- For HW experiment, what robot are we dealing with (0 for sim!)  -->
+  <arg name="robot_number" default="0" />
 
   <!-- ___________________________________________________________________________________________________________ -->
   <!-- Topics that are typically fixed and are shared between different launch files -->
@@ -79,7 +80,7 @@
   <rosparam ns="ctr" file="$(arg control_config_file_loc)" />
 
   <!-- Nominal control and its bounds -->
-  <arg name="K_file" value="$(find crazyflie_lqr)/references/K.txt"/>
+  <arg name="K_file" value="$(find crazyflie_lqr)/references/K$(arg robot_number).txt"/>
   <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref$(arg robot_number).txt" if="$(arg hardware)" />
   <arg name="u_ref_file" value="$(find crazyflie_lqr)/references/uref_sim.txt" unless="$(arg hardware)" />
   <arg name="max_thrust" value="15.0" />
@@ -175,12 +176,13 @@
     <arg name="CBF_parameter_file" value="$(arg CBF_parameter_file)" />
     <arg name="initial_vf_file" value="$(arg initial_vf_file)" />
     <arg name="vf_update_method" value="$(arg vf_update_method)" />
+    <arg name="vf_update_accuracy" value="$(arg vf_update_accuracy)" />
   </include>
 
   <!-- Arguments for child launch files -->
   <!-- Topics. -->
 
-  <arg name="control_reference_topic" value="/control/ref" />
+  <arg name="control_reference_topic" value="/control/external_setpoint" />
   <arg name="takeoff_control_topic" value="/control/takeoff" />
   <arg name="lqr_control_topic" value="/control/lqr" />
   <arg name="in_flight_topic" value="/control/in_flight" />
@@ -193,8 +195,9 @@
   <!-- Takeoff hover point. -->
   <arg name="takeoff_hover_x" value="0.0" />
   <arg name="takeoff_hover_y" value="0.0" />
-  <arg name="takeoff_hover_z" value="0.8" />
+  <arg name="takeoff_hover_z" value="0.5" />
 
+  <arg name="takeoff_thrust" default="10.0" if="$(eval robot_number == 0)" />
   <arg name="takeoff_thrust" default="13.0" if="$(eval robot_number == 1)" />
   <arg name="takeoff_thrust" default="12.0" if="$(eval robot_number == 2)" />
   <arg name="takeoff_thrust" default="11.5" if="$(eval robot_number == 3)" />
@@ -202,8 +205,8 @@
   <arg name="landing_duration" default="5.0" />
 
   <!-- Start point for the simulator. NOT SURE IF WE NEED THIS FOR HW EXPERIMENTS, DOESNT HURT TO HAVE THOUGH -->
-  <arg name="sim_init_x" value="0.0" />
-  <arg name="sim_init_y" value="0.0" />
+  <arg name="sim_init_x" value="$(arg takeoff_hover_x)" />
+  <arg name="sim_init_y" value="$(arg takeoff_hover_y)" />
   <arg name="sim_init_z" value="0.0" />
 
   <!-- Time steps. -->

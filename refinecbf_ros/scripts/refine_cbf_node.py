@@ -4,7 +4,7 @@ import rospy
 import numpy as np
 import jax.numpy as jnp
 from refinecbf_ros.msg import ValueFunctionMsg, Array, HiLoArray
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float32
 from cbf_opt import ControlAffineASIF
 from refine_cbfs import TabularControlAffineCBF
 from refinecbf_ros.config import Config
@@ -39,8 +39,6 @@ class SafetyFilterNode:
         self.state_topic = rospy.get_param("~topics/state", "/state_array")
         self.state_sub = rospy.Subscriber(self.state_topic, Array, self.callback_state)
 
-
-
         alpha = lambda x: gamma * x
         self.cbf = TabularControlAffineCBF(self.dynamics, grid=self.grid, alpha=alpha)
 
@@ -67,6 +65,10 @@ class SafetyFilterNode:
         if not config.disturbance_space["n_dims"] == 0:
             disturbance_update_topic = rospy.get_param("~topics/disturbance_update")
             self.disturbance_update_sub = rospy.Subscriber(disturbance_update_topic, HiLoArray, self.callback_disturbance_update)
+
+        value_function_topic = rospy.get_param("~topics/value_function", "/visualization/value_function")
+        self.value_function_pub = rospy.Publisher(value_function_topic, Float32, queue_size=1)
+
         if self.safety_filter_active:
             # This has to be done to ensure real-time performance
             self.initialized_safety_filter = False
@@ -111,6 +113,10 @@ class SafetyFilterNode:
         else:
             nom_control_active = nom_control[self.safety_controls_idis]
             safety_control_msg = Array()
+            if hasattr(self.safety_filter_solver, "cbf"):
+                vf = np.array(self.safety_filter_solver.cbf.vf(self.state.copy(), 0.0)).item()
+                self.value_function_pub.publish(vf)
+                # rospy.loginfo_throttle_identical(1.0, "value at current state:{:.2f}".format(vf))
             safety_control_active = self.safety_filter_solver(self.state.copy(), nominal_control=np.array([nom_control_active]))
             safety_control = nom_control.copy()
 

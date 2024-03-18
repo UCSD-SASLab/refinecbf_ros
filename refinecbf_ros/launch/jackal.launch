@@ -27,6 +27,7 @@
            2. file:     Saves it as a file and pubsubs a Boolean
     -->
   <arg name="vf_update_method" default="pubsub" />
+  <arg name="vf_update_accuracy" default="high" />
 
     <!-- Choose which files to load to describe the environment -->
   <arg name="env_config_file" default="jackal_env.yaml" />
@@ -135,6 +136,7 @@
     <arg name="CBF_parameter_file" value="$(arg CBF_parameter_file)" />
     <arg name="initial_vf_file" value="$(arg initial_vf_file)" />
     <arg name="vf_update_method" value="$(arg vf_update_method)" />
+    <arg name="vf_update_accuracy" value="$(arg vf_update_accuracy)" />
   </include>
 
   <group>

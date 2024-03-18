@@ -47,6 +47,8 @@ class HJReachabilityNode:
         self.disturbance_space = self.hj_dynamics.disturbance_space
 
         self.vf_update_method = rospy.get_param("~vf_update_method")
+
+        self.vf_update_accuracy = rospy.get_param("~vf_update_accuracy", "medium")
         # Initialize a lock for thread-safe value function updates
         self.vf_lock = Lock()
         # Get initial safe space and setup solver
@@ -63,7 +65,9 @@ class HJReachabilityNode:
             raise NotImplementedError("{} is not a valid vf update method".format(self.vf_update_method))
 
         self.brt = lambda sdf_values: lambda t, x: jnp.minimum(x, sdf_values)
-        self.solver_settings = hj.SolverSettings.with_accuracy("medium", value_postprocessor=self.brt(self.sdf_values))
+        self.solver_settings = hj.SolverSettings.with_accuracy(
+            self.vf_update_accuracy, value_postprocessor=self.brt(self.sdf_values)
+        )
 
         self.vf_initialization_method = rospy.get_param("~vf_initialization_method")
         if self.vf_initialization_method == "sdf":
@@ -91,13 +95,6 @@ class HJReachabilityNode:
         else:  # self.vf_update_method == "file":
             self.vf_pub = rospy.Publisher(self.vf_topic, Bool, queue_size=1)
 
-        # Publish initial value function
-        if self.vf_update_method == "pubsub":
-            self.vf_pub.publish(ValueFunctionMsg(vf=self.vf.flatten()))
-        else:  # self.vf_update_method == "file"
-            np.save("./vf.npy", self.vf)
-            self.vf_pub.publish(Bool(True))
-        
         self.update_vf_flag = rospy.get_param("~update_vf_online")
         if not self.update_vf_flag:
             rospy.logwarn("Value function is not being updated")
@@ -121,7 +118,18 @@ class HJReachabilityNode:
             )
 
         # Start updating the value function
+        self.publish_initial_vf()
         self.update_vf()  # This keeps spinning
+
+    def publish_initial_vf(self):
+        while self.vf_pub.get_num_connections() != 2:
+            rospy.loginfo("HJR node: Waiting for subscribers to connect")
+            rospy.sleep(1)
+        if self.vf_update_method == "pubsub":
+            self.vf_pub.publish(ValueFunctionMsg(vf=self.vf.flatten()))
+        else:  # self.vf_update_method == "file"
+            np.save("./vf.npy", self.vf)
+            self.vf_pub.publish(Bool(True))
 
     def callback_disturbance_update(self, msg):
         """
@@ -163,10 +171,9 @@ class HJReachabilityNode:
         This method updates the obstacle and the solver settings.
         """
         with self.vf_lock:
-            rospy.loginfo("Updating obstacle")
             self.sdf_values = np.array(msg.vf).reshape(self.grid.shape)
             self.solver_settings = hj.SolverSettings.with_accuracy(
-                "medium", value_postprocessor=self.brt(self.sdf_values)
+                self.vf_update_accuracy, value_postprocessor=self.brt(self.sdf_values)
             )
 
     def callback_sdf_update_file(self, msg):
@@ -175,8 +182,9 @@ class HJReachabilityNode:
                 return
             self.sdf_values = np.array(np.load("./sdf.npy")).reshape(self.grid.shape)
             self.solver_settings = hj.SolverSettings.with_accuracy(
-                "medium", value_postprocessor=self.brt(self.sdf_values)
+                self.vf_update_accuracy, value_postprocessor=self.brt(self.sdf_values)
             )
+            rospy.loginfo("Processed SDF update")
 
     def update_dynamics(self):
         """
@@ -195,6 +203,8 @@ class HJReachabilityNode:
         while not rospy.is_shutdown():
             if self.update_vf_flag:
                 with self.vf_lock:
+                    rospy.loginfo("Share of safe cells: {:.3f}".format(np.sum(self.vf >= 0) / self.vf.size))
+                    time_now = rospy.Time.now().to_sec()
                     new_values = hj.step(
                         self.solver_settings,
                         self.hj_dynamics,
@@ -204,14 +214,14 @@ class HJReachabilityNode:
                         -0.1,
                         progress_bar=False,
                     )
+                    rospy.loginfo("Time taken to calculate vf: {:.2f}".format(rospy.Time.now().to_sec() - time_now))
                     self.vf = new_values
+                if self.vf_update_method == "pubsub":
+                    self.vf_pub.publish(ValueFunctionMsg(np.array(self.vf).flatten()))
+                else:  # self.vf_update_method == "file"
+                    np.save("./vf.npy", self.vf)
+                    self.vf_pub.publish(Bool(True))
 
-                    rospy.loginfo("New vf calculated")
-            if self.vf_update_method == "pubsub":
-                self.vf_pub.publish(ValueFunctionMsg(np.array(self.vf).flatten()))
-            else:  # self.vf_update_method == "file"
-                np.save("./vf.npy", self.vf)
-                self.vf_pub.publish(Bool(True))
             rospy.sleep(0.05)  # To make sure that subscribers can run
 
 
