@@ -30,6 +30,7 @@ class ObstacleNode:
         self.update_obstacles = config.update_obstacles
         self.active_obstacle_names = config.active_obstacle_names
         self.boundary = config.boundary
+        self.safety_states_idis = config.safety_states
 
         # Publishers:
         self.vf_update_method = rospy.get_param("~vf_update_method")
@@ -49,16 +50,13 @@ class ObstacleNode:
         cbf_state_topic = rospy.get_param("~topics/cbf_state")
         state_sub = rospy.Subscriber(cbf_state_topic, Array, self.callback_state)
 
-        # Wait for state message before proceeding
-        rospy.wait_for_message(cbf_state_topic,Array)
-
         # Services:
         activate_obstacle_service = rospy.get_param("~services/activate_obstacle")
         rospy.Service(activate_obstacle_service, ActivateObstacle, self.handle_activate_obstacle)
 
         # Initialize SDF(just active obstacles + boundary):
         self.update_sdf()  # Publish initial sdf
-
+        self.update_active_obstacles()  # Initial update
         # Set start time
         self.startTime = rospy.Time().now().to_sec()
 
@@ -67,12 +65,15 @@ class ObstacleNode:
         for obstacle in self.detection_obstacles:
             if obstacle not in self.active_obstacles:
                 if obstacle.distance_to_obstacle(self.robot_state) <= obstacle.detectionRadius:
+                    rospy.loginfo("Obstacle Detected: {}".format(obstacle.obstacleName))
                     self.active_obstacles.append(obstacle)
                     self.active_obstacle_names.append(obstacle.obstacleName)
                     updatesdf = True
         for obstacle in self.update_obstacles:
             if obstacle not in self.active_obstacles:
-                if obstacle.updateTime >= rospy.Time.now().to_sec() - self.startTime:
+                when_to_update = rospy.Time.now().to_sec() - self.startTime
+                if when_to_update >= obstacle.updateTime:
+                    rospy.loginfo("Obstacle appeared: {}".format(obstacle.obstacleName))
                     self.active_obstacles.append(obstacle)
                     self.active_obstacle_names.append(obstacle.obstacleName)
                     updatesdf = True
@@ -83,7 +84,7 @@ class ObstacleNode:
 
     def update_sdf(self):
         sdf = hj.utils.multivmap(self.build_sdf(), jnp.arange(self.grid.ndim))(self.grid.states)
-        rospy.loginfo("Here!")
+        rospy.loginfo("Share Safe SDF {:.2f}".format(((sdf >= 0).sum() / sdf.size) * 100))
         if self.vf_update_method == "pubsub":
             self.sdf_update_pub.publish(ValueFunctionMsg(sdf.flatten()))
         else:  # self.vf_update_method == "file"
@@ -94,7 +95,7 @@ class ObstacleNode:
         self.obstacle_update_pub.publish(Obstacles(self.active_obstacle_names))
 
     def callback_state(self, state_msg):
-        self.robot_state = jnp.reshape(np.array(state_msg.value), (-1, 1))
+        self.robot_state = np.array(state_msg.value)[self.safety_states_idis]
 
     def build_sdf(self):
         def sdf(x):
@@ -103,7 +104,6 @@ class ObstacleNode:
                 obstacle_sdf = obstacle.obstacle_sdf(x)
                 sdf = jnp.min(jnp.array([sdf, obstacle_sdf]))
             return sdf
-
         return sdf
 
     def handle_activate_obstacle(self, req):

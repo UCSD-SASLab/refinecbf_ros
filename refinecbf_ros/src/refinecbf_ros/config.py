@@ -255,10 +255,10 @@ class Circle(Obstacle):
         return obstacle_sdf
 
     def distance_to_obstacle(self, state):
-        point = state[self.stateIndices]
-        distance = np.linalg.norm(self.center - point) - \
+        point = state[self.stateIndices].reshape(-1)
+        distance = np.linalg.norm(self.center.reshape(-1) - point) - \
             self.radius - self.padding
-        return max(distance, 0.0)
+        return distance
 
 
 class Rectangle(Obstacle):
@@ -297,12 +297,14 @@ class Rectangle(Obstacle):
         return obstacle_sdf
 
     def distance_to_obstacle(self, state):
-        point = state[self.stateIndices]
-        if np.all(np.logical_and(self.minVal <= point, point <= self.maxVal)):
-            return 0.0
-        distances = np.abs(point - np.maximum(self.minVal,
-                           np.minimum(point, self.maxVal)))
-        return np.linalg.norm(distances)
+        point = state[self.stateIndices].reshape(-1)
+        minVal = self.minVal.reshape(-1)
+        maxVal = self.maxVal.reshape(-1)
+        max_dist_per_dim = np.max(np.array([minVal - point, point - maxVal]), axis=0)
+        raw_distance = np.where(np.all(max_dist_per_dim < 0.0), 
+                                np.max(max_dist_per_dim), 
+                                np.linalg.norm(np.maximum(0, max_dist_per_dim)))
+        return raw_distance - self.padding
 
 
 class Boundary(Obstacle):
