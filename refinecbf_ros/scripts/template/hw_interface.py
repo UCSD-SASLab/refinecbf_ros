@@ -53,10 +53,11 @@ class BaseInterface:
         self.external_control_pub = rospy.Publisher(cbf_external_control_topic, Array, queue_size=1)
 
         # Set up disturbance subscriber and publisher
-        robot_disturbance_topic = rospy.get_param("~topics/robot_disturbance")
-        simulated_disturbance_topic = rospy.get_param("~topics/simulated_disturbance")
-        rospy.Subscriber(simulated_disturbance_topic, Array, self.callback_disturbance)
-        self.disturbance_pub = rospy.Publisher(robot_disturbance_topic, self.disturbance_out_msg_type, queue_size=1)
+        if not rospy.get_param("~/env/disturbance_space/n_dims") == 0:
+            robot_disturbance_topic = rospy.get_param("~topics/robot_disturbance")
+            simulated_disturbance_topic = rospy.get_param("~topics/simulated_disturbance")
+            rospy.Subscriber(simulated_disturbance_topic, Array, self.callback_disturbance)
+            self.disturbance_pub = rospy.Publisher(robot_disturbance_topic, self.disturbance_out_msg_type, queue_size=1)
 
     def callback_state(self, state_msg):
         """
