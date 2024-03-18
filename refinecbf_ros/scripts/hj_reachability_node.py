@@ -91,13 +91,6 @@ class HJReachabilityNode:
         else:  # self.vf_update_method == "file":
             self.vf_pub = rospy.Publisher(self.vf_topic, Bool, queue_size=1)
 
-        # Publish initial value function
-        if self.vf_update_method == "pubsub":
-            self.vf_pub.publish(ValueFunctionMsg(vf=self.vf.flatten()))
-        else:  # self.vf_update_method == "file"
-            np.save("./vf.npy", self.vf)
-            self.vf_pub.publish(Bool(True))
-        
         self.update_vf_flag = rospy.get_param("~update_vf_online")
         if not self.update_vf_flag:
             rospy.logwarn("Value function is not being updated")
@@ -121,7 +114,18 @@ class HJReachabilityNode:
             )
 
         # Start updating the value function
+        self.publish_initial_vf()
         self.update_vf()  # This keeps spinning
+
+    def publish_initial_vf(self):
+        while self.vf_pub.get_num_connections() != 2:
+            rospy.loginfo("HJR node: Waiting for subscribers to connect")
+            rospy.sleep(1)
+        if self.vf_update_method == "pubsub":
+            self.vf_pub.publish(ValueFunctionMsg(vf=self.vf.flatten()))
+        else:  # self.vf_update_method == "file"
+            np.save("./vf.npy", self.vf)
+            self.vf_pub.publish(Bool(True))
 
     def callback_disturbance_update(self, msg):
         """
