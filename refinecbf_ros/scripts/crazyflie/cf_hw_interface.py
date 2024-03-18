@@ -7,6 +7,7 @@ from std_msgs.msg import Empty
 from crazyflie_msgs.msg import (
     PositionVelocityYawStateStamped,
     PrioritizedControlStamped,
+    PositionVelocityStateStamped,
     ControlStamped,
     DisturbanceStamped,
 )
@@ -31,16 +32,12 @@ class CrazyflieInterface(BaseInterface):
     disturbance_out_msg_type = DisturbanceStamped
 
     def __init__(self):
-        self.is_in_flight = False
-        super().__init__()
-
         # In flight flag setup
         self.in_flight_flag_topic = rospy.get_param("in_flight_topic", "/control/in_flight")
-        self.in_flight_flag_sub = rospy.Subscriber(self.in_flight_flag_topic, Empty, self.callback_in_flight)
-
+        self.is_in_flight = False
+        
         # External setpoint setup
-        self.external_setpoint_time_buffer = rospy.get_param("/ctr/external_setpoint_buffer", 1.0)  # seconds
-        self.external_setpoint_sub = rospy.Subscriber("/control/external_setpoint", Empty, self.callback_setpoint)
+        self.external_setpoint_time_buffer = rospy.get_param("/ctr/external_setpoint_buffer", 30.0)  # seconds
         self.external_setpoint_ts = None
         self.external_setpoint = None
         
@@ -49,7 +46,13 @@ class CrazyflieInterface(BaseInterface):
         self.min_thrust = rospy.get_param("~control/min_thrust")
         self.max_roll = rospy.get_param("~control/max_roll")
         self.max_pitch = rospy.get_param("~control/max_pitch")
-        
+
+        super().__init__()
+
+    def init_subscribers(self):
+        super().init_subscribers()
+        self.in_flight_flag_sub = rospy.Subscriber(self.in_flight_flag_topic, Empty, self.callback_in_flight)
+        self.external_setpoint_sub = rospy.Subscriber("/control/external_setpoint", PositionVelocityStateStamped, self.callback_setpoint)  # TODO: Remove hardcoding
 
     def callback_state(self, state_in_msg):
         #  state_msg is a PositionVelocityYawStateStamped message
