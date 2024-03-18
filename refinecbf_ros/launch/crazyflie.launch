@@ -26,7 +26,7 @@
            1. pubsub:   flattens the vf and passes it 
            2. file:     Saves it as a file and pubsubs a Boolean
     -->
-  <arg name="vf_update_method" default="pubsub" />
+  <arg name="vf_update_accuracy" default="high" />
 
     <!-- Choose which files to load to describe the environment -->
   <arg name="env_config_file" default="simple_env.yaml" />
@@ -38,8 +38,8 @@
   <arg name="CBF_parameter_file" default="crazyflie_CBF_params.yaml" />
   <arg name="initial_vf_file" default="target_values_judy.npy" />
 
-  <!-- For HW experiment, what robot are we dealing with  -->
-  <arg name="robot_number" default="1" />
+  <!-- For HW experiment, what robot are we dealing with (0 for sim!)  -->
+  <arg name="robot_number" default="0" />
 
   <!-- ___________________________________________________________________________________________________________ -->
   <!-- Topics that are typically fixed and are shared between different launch files -->
@@ -175,6 +175,7 @@
     <arg name="CBF_parameter_file" value="$(arg CBF_parameter_file)" />
     <arg name="initial_vf_file" value="$(arg initial_vf_file)" />
     <arg name="vf_update_method" value="$(arg vf_update_method)" />
+    <arg name="vf_update_accuracy" value="$(arg vf_update_accuracy)" />
   </include>
 
   <!-- Arguments for child launch files -->
